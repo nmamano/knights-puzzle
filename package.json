@@ -13,6 +13,8 @@
     "format:check": "prettier --check .",
     "test": "bun test tests/",
     "smoke": "node scripts/smoke.mjs",
+    "check:meta": "node scripts/check-meta.mjs",
+    "make:assets": "node scripts/make-assets.mjs public",
     "ci": "bun run format:check && bun run lint && bun run typecheck && bun run test && bun run build"
   },
   "dependencies": {

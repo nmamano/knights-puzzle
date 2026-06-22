@@ -139,8 +139,9 @@ server). The human-facing dev server uses Vite's default 5173.
       chess-knight ♞ sliding piece, white Tron light-trail (draw on move / erase
       on undo), win panel below the board, self-hosted Patrick Hand. ✅ committed
       (many Nil iterations).
-- [ ] **5g — Meta polish.** Tab icon (favicon), OG / social cards, page title &
-      meta description, accessibility pass — matching the final look.
+- [x] **5g — Meta polish.** Tab icon (favicon), OG / social cards, page title &
+      meta description, accessibility (:focus-visible) — matching the final
+      look. ✅ committed (controlled Playwright promo card, separate meta probe).
 
 ---
 

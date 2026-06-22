@@ -361,8 +361,19 @@ h1 {
   transform: scale(0.96);
 }
 .btn:disabled {
-  opacity: 0.45;
+  opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* Accessibility — obvious keyboard focus, keeping our lavender identity. */
+.chip:focus-visible,
+.btn:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+.cell.open:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: -3px;
 }
 .btn.primary {
   background: var(--accent);

@@ -1,4 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <rect width="32" height="32" rx="7" fill="#6c8cff" />
-  <text x="16" y="24" font-size="22" text-anchor="middle" fill="#ffffff">♞</text>
+  <rect width="32" height="32" rx="7" fill="#86c46a" />
+  <text
+    x="16"
+    y="25"
+    font-size="26"
+    text-anchor="middle"
+    fill="#ffffff"
+    stroke="#2b2640"
+    stroke-width="0.9"
+    paint-order="stroke"
+    font-family="Georgia, 'Times New Roman', serif"
+  >♞</text>
 </svg>
