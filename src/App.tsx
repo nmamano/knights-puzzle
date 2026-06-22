@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Cell } from "./engine";
 import {
   currentLegalMoves,
@@ -34,6 +34,7 @@ declare global {
 const DESK_CELL = 56;
 const GAP = 5;
 const PAD = 12;
+const SLIDE_MS = 180; // keep in sync with the .piece transition duration
 
 const DIFFICULTIES: { id: DifficultyId; label: string }[] = [
   { id: "easy", label: "Easy" },
@@ -55,6 +56,11 @@ function randomSeed(): number {
   return Math.floor(Math.random() * 0x7fffffff) + 1;
 }
 
+// The single trail segment currently animating: "draw" (a move) grows it from
+// `from` to `to`; "erase" (an undo) retracts it the same way, both synced to
+// the knight's slide.
+type ActiveSeg = { from: Cell; to: Cell; dir: "draw" | "erase"; id: number };
+
 export default function App() {
   const [settings, setSettings] = useState<Settings>(() =>
     presetSettings("medium"),
@@ -63,6 +69,68 @@ export default function App() {
     const s = presetSettings("medium");
     return newGame(s.n, s.steps, randomSeed());
   });
+  // Bumped on "jump" actions (new puzzle / retry / difficulty) to re-key the
+  // piece so it SNAPS to the start instead of sliding. Moves/undo keep the same
+  // gen, so the piece slides.
+  const [gen, setGen] = useState(0);
+
+  // The trail is split into a SETTLED polyline (fully drawn) plus one ACTIVE
+  // segment that animates in sync with the knight's slide: a move DRAWS the new
+  // segment, an undo ERASES the removed one. A snap (gen change) updates
+  // instantly with no animation.
+  const [settledVisited, setSettledVisited] = useState<Cell[]>(
+    () => game.visited,
+  );
+  const [active, setActive] = useState<ActiveSeg | null>(null);
+  const prevVisited = useRef<Cell[]>(game.visited);
+  const prevGen = useRef(gen);
+  const activeId = useRef(0);
+  useEffect(() => {
+    const cur = game.visited;
+    const prev = prevVisited.current;
+    const genChanged = gen !== prevGen.current;
+    prevVisited.current = cur;
+    prevGen.current = gen;
+
+    if (genChanged) {
+      setSettledVisited(cur);
+      setActive(null);
+      return;
+    }
+    if (cur.length > prev.length) {
+      // move: settled stays behind; the new segment draws out to the knight.
+      const id = ++activeId.current;
+      setSettledVisited(prev);
+      setActive({
+        from: prev[prev.length - 1],
+        to: cur[cur.length - 1],
+        dir: "draw",
+        id,
+      });
+      const t = setTimeout(() => {
+        setSettledVisited(cur);
+        setActive((a) => (a && a.id === id ? null : a));
+      }, SLIDE_MS);
+      return () => clearTimeout(t);
+    }
+    if (cur.length < prev.length) {
+      // undo: settled drops immediately; the removed segment erases back.
+      const id = ++activeId.current;
+      setSettledVisited(cur);
+      setActive({
+        from: cur[cur.length - 1],
+        to: prev[prev.length - 1],
+        dir: "erase",
+        id,
+      });
+      const t = setTimeout(() => {
+        setActive((a) => (a && a.id === id ? null : a));
+      }, SLIDE_MS);
+      return () => clearTimeout(t);
+    }
+    setSettledVisited(cur);
+    setActive(null);
+  }, [game.visited, gen]);
 
   const legal = useMemo(() => currentLegalMoves(game), [game]);
   const totalCells = game.puzzle.path.length;
@@ -96,10 +164,11 @@ export default function App() {
     };
   }, [game, legal, totalCells, settings, scoreVal, perfect, stuck]);
 
-  // Apply new settings AND regenerate a puzzle with a fresh seed.
+  // Apply new settings AND regenerate a puzzle with a fresh seed (snap, no slide).
   const regenerate = useCallback((s: Settings) => {
     setSettings(s);
     setGame(newGame(s.n, s.steps, randomSeed()));
+    setGen((g) => g + 1);
   }, []);
 
   const handleDifficulty = useCallback(
@@ -125,9 +194,15 @@ export default function App() {
 
   const handleNewPuzzle = useCallback(() => {
     setGame(newGame(settings.n, settings.steps, randomSeed()));
+    setGen((g) => g + 1);
   }, [settings.n, settings.steps]);
 
-  const handleRetry = useCallback(() => setGame((g) => resetGame(g)), []);
+  // Retry snaps the piece back to start (re-key), so it does NOT slide.
+  const handleRetry = useCallback(() => {
+    setGame((g) => resetGame(g));
+    setGen((g) => g + 1);
+  }, []);
+  // Undo keeps the same gen, so the piece slides back one step.
   const handleUndo = useCallback(() => setGame((g) => undoMove(g)), []);
   const handleCellClick = useCallback(
     (cell: Cell) => setGame((g) => tryMove(g, cell)),
@@ -231,7 +306,6 @@ export default function App() {
               }
 
               const cell = { r, c };
-              const isKnight = sameCell(knight, cell);
               const isStart = sameCell(puzzle.start, cell);
               const isEnd = sameCell(puzzle.end, cell);
               const isLegal = legalKeys.has(k);
@@ -247,7 +321,6 @@ export default function App() {
               ]
                 .filter(Boolean)
                 .join(" ");
-              const glyph = isKnight ? "♞" : isEnd ? "🏁" : isStart ? "◎" : "";
               return (
                 <button
                   key={k}
@@ -257,32 +330,76 @@ export default function App() {
                   onClick={() => handleCellClick(cell)}
                   aria-label={`square ${r},${c}${isEnd ? " (goal)" : isStart ? " (start)" : ""}`}
                 >
-                  <span className="glyph">{glyph}</span>
+                  <span className="glyph">
+                    {isEnd ? "🏁" : isStart ? "◎" : ""}
+                  </span>
                 </button>
               );
             }),
           )}
         </div>
 
-        {won && (
-          <div className="win-banner" role="alert">
-            <div className="win-text">
-              {perfect
-                ? `Perfect! ${scoreVal}/${totalCells} 🎉`
-                : `Reached the goal! ${scoreVal}/${totalCells}`}
-            </div>
-            {!perfect && (
-              <button
-                type="button"
-                className="btn primary"
-                onClick={handleRetry}
-              >
-                Retry for a better score
-              </button>
-            )}
-          </div>
-        )}
+        {/* Edges tracing the knight's route so far. */}
+        <svg
+          className="trail"
+          viewBox={`0 0 ${puzzle.n} ${puzzle.n}`}
+          preserveAspectRatio="none"
+          aria-hidden="true"
+        >
+          {settledVisited.length > 1 && (
+            <polyline
+              className="trail-line"
+              points={settledVisited
+                .map((v) => `${v.c + 0.5},${v.r + 0.5}`)
+                .join(" ")}
+            />
+          )}
+          {active && (
+            <line
+              key={active.id}
+              className={`trail-line trail-${active.dir}`}
+              pathLength={1}
+              x1={active.from.c + 0.5}
+              y1={active.from.r + 0.5}
+              x2={active.to.c + 0.5}
+              y2={active.to.r + 0.5}
+            />
+          )}
+        </svg>
+
+        {/* The knight, as a single overlay piece that SLIDES between squares. */}
+        <div
+          className="piece-layer"
+          style={{ "--n": puzzle.n } as React.CSSProperties}
+          aria-hidden="true"
+        >
+          <span
+            key={gen}
+            className="piece"
+            style={{
+              left: `${((knight.c + 0.5) / puzzle.n) * 100}%`,
+              top: `${((knight.r + 0.5) / puzzle.n) * 100}%`,
+            }}
+          >
+            ♞
+          </span>
+        </div>
       </div>
+
+      {won && (
+        <div className="win-panel" role="status">
+          <span className="win-text">
+            {perfect
+              ? `Perfect! ${scoreVal}/${totalCells} 🎉`
+              : `Reached the goal! ${scoreVal}/${totalCells}`}
+          </span>
+          {!perfect && (
+            <button type="button" className="btn primary" onClick={handleRetry}>
+              Retry for a better score
+            </button>
+          )}
+        </div>
+      )}
 
       {stuck && (
         <p className="stuck-note" role="status">

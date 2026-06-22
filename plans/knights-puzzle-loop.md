@@ -134,10 +134,11 @@ server). The human-facing dev server uses Vite's default 5173.
 - [x] **5e — Softer scoring/win (Nil).** Reaching the goal wins; score =
       visited/total squares (e.g. 13/17); imperfect runs get a "retry for a
       better score" on the win screen. Perfect = all squares. ✅ committed.
-- [ ] **5f — Aesthetic revamp (Nil).** Cozy grass-field / pixel vibe: flat
-      EDGE-TO-EDGE tiles (no rounded corners, no gaps) with subtle grid lines,
-      two-tone grass checker, hedge/blocked tiles, playful title, horse/knight
-      sprite. Validity stays dominant; checker stays a quiet orthogonal axis.
+- [x] **5f — Aesthetic revamp (Nil).** Cozy grass-field, flat EDGE-TO-EDGE
+      tiles + grid lines, grass/hedge validity (dominant) + quiet checker, OS
+      chess-knight ♞ sliding piece, white Tron light-trail (draw on move / erase
+      on undo), win panel below the board, self-hosted Patrick Hand. ✅ committed
+      (many Nil iterations).
 - [ ] **5g — Meta polish.** Tab icon (favicon), OG / social cards, page title &
       meta description, accessibility pass — matching the final look.
 
