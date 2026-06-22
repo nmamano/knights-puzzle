@@ -253,4 +253,61 @@ path: Cell[]; seed: number }`
   (rewrite from skeleton), `scripts/smoke.mjs` (rewrite to solve-and-judge),
   `tests/game.test.ts` (new), `src/index.css`.
 
-## SLICE-5c PICKUP — authored when 5b commits, folding in what 5b taught
+## SLICE-5c PICKUP — Cutesy UI + UX (authored after 5b)
+
+- **Baseline commit:** `c1261d2` (5b playable) + `ad1fa71` (dev-host config).
+
+- **What 5b taught (fold in):**
+  - The dev server MUST run as a harness-tracked background task
+    (`run_in_background` with NO `&`/nohup) or it gets reaped between turns.
+    Reserved human-facing port: **5280** (`--host`, allowedHosts includes
+    `auntie`). Smoke still uses 4317.
+  - The evidence-surface + solve-and-judge smoke pattern works well; keep it.
+  - **Nil's checkpoint feedback (LOCKED requirements for 5c):**
+    1. **Retry button** — reset the CURRENT puzzle to the start (distinct from
+       "New puzzle"). Knight tours need backtracking → also add **Undo** (step
+       back one move).
+    2. **Checkerboard must be visible on blocked cells too** — render the
+       light/dark pattern on EVERY square; blocked squares are dimmed/muted and
+       non-interactive. Availability stays the dominant visual, but the board
+       must still read as a chessboard.
+
+- **Goal:** make it cutesy but functionally clear without changing any rules.
+  Pure visual/UX layer over the existing engine + game state.
+
+- **Load-bearing mechanics / traps:**
+  - Keep all rules in the engine; 5c is presentation + two new pure state
+    transitions (`undoMove`, `resetGame`) in `src/game.ts` — both return new
+    state, never mutate, and are unit-tested.
+  - `undoMove` pops the last visited cell (no-op at the start / when only the
+    start remains) and recomputes `won=false`; `resetGame` keeps the same
+    puzzle, knight back to start, visited=[start], won=false.
+  - The evidence surface (`window.__KP__`) stays the oracle; the solve-and-judge
+    smoke must still pass. Add a small smoke check that Undo then re-move works,
+    or unit-cover undo/reset (decide with reviewer).
+  - Checkerboard-on-blocked: don't lose the availability signal — blocked
+    cells dimmed (lower contrast/opacity), available cells brighter + slightly
+    raised; clear start (◎ / ring) and end (🏁) markers, knight ♞, visited
+    trail, legal-move hints, a win celebration.
+
+- **Acceptance criteria:**
+  - Every square shows the checkerboard pattern; blocked squares are clearly
+    "not part of the level" yet still patterned; available squares are the
+    obvious play surface.
+  - Controls: New puzzle · Retry (reset current) · Undo (step back); Undo and
+    Retry behave correctly at boundaries.
+  - Win shows a clear celebration; start/end/knight/visited/legal all legible.
+  - Unit tests for `undoMove` + `resetGame` (boundaries + happy path).
+  - All gates green (`bun run ci && bun run smoke`); smoke still solves & wins.
+
+- **Decide-with-reviewer:** exact visual treatment of blocked vs available;
+  whether to add an undo/reset assertion to the smoke or keep it unit-only;
+  win-celebration scope (keep tasteful, no heavy deps).
+
+- **Locked (don't relitigate):** no rule changes; no solver; checkerboard
+  visible everywhere; retry + undo present; client-side only.
+
+- **Resources:** `src/game.ts` (+undoMove/resetGame), `src/App.tsx`,
+  `src/index.css`, `scripts/smoke.mjs`, `tests/game.test.ts`.
+
+## SLICE-5d PICKUP — authored when 5c commits, folding in what 5c taught
