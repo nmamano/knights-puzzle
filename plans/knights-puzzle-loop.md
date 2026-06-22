@@ -112,9 +112,9 @@ server). The human-facing dev server uses Vite's default 5173.
 
 ## Slice plan (tick on commit)
 
-- [ ] **5a — Engine.** Pure module: knight moves, seeded puzzle generator
+- [x] **5a — Engine.** Pure module: knight moves, seeded puzzle generator
       (N, K, seed → available cells + start + end + witness path), legal-move
-      query, win check. Proven by unit tests. No UI.
+      query, win check. Proven by unit tests. No UI. ✅ committed.
 - [ ] **5b — Minimal playable.** Render a generated board, knight on start,
       click a legal square to move, track visited, detect win. Ugly but real,
       running on a dev port. `window.__KP__` exposes full game state.
