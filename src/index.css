@@ -1,4 +1,5 @@
 :root {
+  --cell: 56px;
   font-family:
     system-ui,
     -apple-system,
@@ -23,4 +24,112 @@ body {
 main {
   padding: 2rem 1rem;
   text-align: center;
+  max-width: 680px;
+}
+
+h1 {
+  margin: 0 0 0.25rem;
+}
+
+.tagline {
+  color: #6b6580;
+  margin: 0 0 1rem;
+}
+
+.status {
+  font-size: 1.15rem;
+  font-weight: 600;
+  min-height: 1.5em;
+  margin: 0 0 1rem;
+}
+
+.board {
+  display: grid;
+  gap: 4px;
+  justify-content: center;
+  width: max-content;
+  margin: 0 auto 1.25rem;
+  padding: 10px;
+  background: #e9e4ff;
+  border-radius: 14px;
+}
+
+.cell {
+  width: var(--cell);
+  height: var(--cell);
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 9px;
+  padding: 0;
+}
+
+/* Removed squares — visually clearly "not part of the puzzle". */
+.hole {
+  background: transparent;
+  box-shadow: inset 0 0 0 2px rgba(43, 38, 64, 0.05);
+}
+
+.tile {
+  cursor: pointer;
+  transition:
+    filter 0.1s ease,
+    transform 0.05s ease;
+}
+
+.tile.light {
+  background: #f7f1e1;
+}
+
+.tile.dark {
+  background: #d9cdb0;
+}
+
+.tile.visited {
+  background: #b9a7ff;
+}
+
+.tile.legal {
+  box-shadow:
+    0 0 0 3px #6c8cff,
+    0 2px 6px rgba(108, 140, 255, 0.4);
+}
+
+.tile:hover {
+  filter: brightness(1.05);
+}
+
+.tile:active {
+  transform: scale(0.96);
+}
+
+.glyph {
+  font-size: 1.85rem;
+  line-height: 1;
+}
+
+.controls {
+  margin: 1rem 0;
+}
+
+.btn {
+  padding: 0.6rem 1.3rem;
+  border-radius: 999px;
+  border: none;
+  background: #6c8cff;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn:hover {
+  background: #5a7bf0;
+}
+
+.hint {
+  color: #6b6580;
+  font-size: 0.9rem;
+  max-width: 32rem;
+  margin: 0.5rem auto 0;
 }

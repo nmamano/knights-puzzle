@@ -115,10 +115,10 @@ server). The human-facing dev server uses Vite's default 5173.
 - [x] **5a — Engine.** Pure module: knight moves, seeded puzzle generator
       (N, K, seed → available cells + start + end + witness path), legal-move
       query, win check. Proven by unit tests. No UI. ✅ committed.
-- [ ] **5b — Minimal playable.** Render a generated board, knight on start,
+- [x] **5b — Minimal playable.** Render a generated board, knight on start,
       click a legal square to move, track visited, detect win. Ugly but real,
-      running on a dev port. `window.__KP__` exposes full game state.
-      ← **CHECKPOINT: contact Nil when this runs on a dev port.**
+      running on a dev port. `window.__KP__` exposes full game state. ✅
+      committed. ← **CHECKPOINT: paused for Nil before 5c.**
 - [ ] **5c — Cutesy UI + UX.** Checkerboard styling with available-vs-removed
       as the dominant visual, start/end markers, knight piece, legal-move hints,
       visited trail, win celebration, undo / reset / new-puzzle.

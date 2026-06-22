@@ -1,10 +1,13 @@
-// Real-browser smoke gate.
-// Drives the REAL app in headless system Chrome (channel: "chrome") and judges
-// by the evidence surface (window.__KP__), never by pixels/DOM appearance.
+// Real-browser smoke gate — SOLVE-AND-JUDGE.
 //
-// Reserved port: 4317 (strictPort — fails loudly if taken, never clobbers a
-// live dev server). Self-contained: starts its own Vite dev server, runs the
-// checks, tears everything down.
+// Drives the REAL game in headless system Chrome (channel: "chrome"): it reads
+// the witness solution from the evidence surface (window.__KP__.solution),
+// then SOLVES the puzzle by real clicks on [data-cell="r-c"] buttons, polling
+// window.__KP__.knight after each click (click-and-verify — clicks race
+// re-renders). The verdict comes from window.__KP__ (won / counts), never from
+// pixels. Fails on any page error.
+//
+// Reserved port: 4317 (strictPort — never clobbers a live dev server).
 import { spawn } from "node:child_process";
 import { chromium } from "playwright";
 
@@ -57,27 +60,59 @@ try {
   // about:blank probe (proves the browser channel launches).
   await page.goto("about:blank");
 
-  // Load the real app.
+  // Load the real app and wait for the evidence surface.
   await page.goto(URL, { waitUntil: "domcontentloaded" });
-
-  // Judge via evidence surface, not pixels.
   await page.waitForFunction(
     () => window.__KP__ && window.__KP__.ready === true,
-    {
-      timeout: 10000,
-    },
+    { timeout: 10000 },
   );
 
-  const title = await page.title();
-  const heading = await page.locator("h1").first().innerText();
+  const startState = await page.evaluate(() => window.__KP__);
+  if (startState.won) throw new Error("game started already won");
+  if (!Array.isArray(startState.solution) || startState.solution.length < 2) {
+    throw new Error("no witness solution exposed on __KP__");
+  }
+  if (
+    startState.knight.r !== startState.start.r ||
+    startState.knight.c !== startState.start.c
+  ) {
+    throw new Error("knight did not begin on the start square");
+  }
 
+  // Solve by real clicks, verifying each move against the evidence surface.
+  const solution = startState.solution;
+  for (let i = 1; i < solution.length; i++) {
+    const { r, c } = solution[i];
+    await page.click(`[data-cell="${r}-${c}"]`);
+    await page.waitForFunction(
+      (target) => {
+        const k = window.__KP__ && window.__KP__.knight;
+        return k && k.r === target.r && k.c === target.c;
+      },
+      { r, c },
+      { timeout: 5000 },
+    );
+  }
+
+  const final = await page.evaluate(() => window.__KP__);
   if (pageErrors.length) {
     throw new Error("pageerrors: " + pageErrors.join("; "));
+  }
+  if (!final.won) throw new Error("did not win after following the solution");
+  if (final.visitedCount !== final.totalCells) {
+    throw new Error(`covered ${final.visitedCount}/${final.totalCells} cells`);
   }
 
   console.log(
     JSON.stringify(
-      { ok: true, title, heading, chrome: browser.version() },
+      {
+        ok: true,
+        seed: final.seed,
+        solvedCells: final.visitedCount,
+        totalCells: final.totalCells,
+        won: final.won,
+        chrome: browser.version(),
+      },
       null,
       2,
     ),
