@@ -119,9 +119,10 @@ server). The human-facing dev server uses Vite's default 5173.
       click a legal square to move, track visited, detect win. Ugly but real,
       running on a dev port. `window.__KP__` exposes full game state. ✅
       committed. ← **CHECKPOINT: paused for Nil before 5c.**
-- [ ] **5c — Cutesy UI + UX.** Checkerboard styling with available-vs-removed
+- [x] **5c — Cutesy UI + UX.** Checkerboard styling with available-vs-removed
       as the dominant visual, start/end markers, knight piece, legal-move hints,
-      visited trail, win celebration, undo / reset / new-puzzle.
+      visited trail, win celebration, undo / reset / new-puzzle. ✅ committed
+      (incl. Nil's notes: checkerboard on blocked cells + Retry/Undo).
 - [ ] **5d — Content & modes (optional/trim-able).** Easy/Med/Hard presets
       (N + path length) and a custom board-size / path-length control. Maybe a
       shareable seed.

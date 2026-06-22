@@ -59,3 +59,34 @@ export function tryMove(state: GameState, cell: Cell): GameState {
     won: isWin(state.puzzle, visited),
   };
 }
+
+/**
+ * Step the knight back one square. Returns the SAME reference at the start
+ * boundary (only the start square visited); otherwise a new state on the same
+ * puzzle with `won` cleared. Works after a win (steps back off the end).
+ */
+export function undoMove(state: GameState): GameState {
+  if (state.visited.length <= 1) return state;
+  const visited = state.visited.slice(0, -1).map((c) => ({ r: c.r, c: c.c }));
+  const last = visited[visited.length - 1];
+  return {
+    puzzle: state.puzzle,
+    knight: { r: last.r, c: last.c },
+    visited,
+    won: false,
+  };
+}
+
+/**
+ * Restart the CURRENT puzzle: same puzzle/seed, knight back on start, only the
+ * start visited, not won. Always returns a new state (never mutates).
+ */
+export function resetGame(state: GameState): GameState {
+  const start = state.puzzle.start;
+  return {
+    puzzle: state.puzzle,
+    knight: { r: start.r, c: start.c },
+    visited: [{ r: start.r, c: start.c }],
+    won: false,
+  };
+}

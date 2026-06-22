@@ -79,8 +79,35 @@ try {
     throw new Error("knight did not begin on the start square");
   }
 
-  // Solve by real clicks, verifying each move against the evidence surface.
   const solution = startState.solution;
+
+  // Undo round-trip: make the first move, Undo it, and confirm we are back at
+  // the start (knight + visitedCount) before solving for real.
+  const first = solution[1];
+  await page.click(`[data-cell="${first.r}-${first.c}"]`);
+  await page.waitForFunction(
+    (t) => {
+      const s = window.__KP__;
+      return (
+        s && s.knight.r === t.r && s.knight.c === t.c && s.visitedCount === 2
+      );
+    },
+    first,
+    { timeout: 5000 },
+  );
+  await page.getByRole("button", { name: "Undo" }).click();
+  await page.waitForFunction(
+    (st) => {
+      const s = window.__KP__;
+      return (
+        s && s.knight.r === st.r && s.knight.c === st.c && s.visitedCount === 1
+      );
+    },
+    startState.start,
+    { timeout: 5000 },
+  );
+
+  // Solve by real clicks, verifying each move against the evidence surface.
   for (let i = 1; i < solution.length; i++) {
     const { r, c } = solution[i];
     await page.click(`[data-cell="${r}-${c}"]`);
