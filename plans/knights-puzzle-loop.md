@@ -490,6 +490,60 @@ total` (perfect should still satisfy engine `isWin`). Keep `tryMove`
 - **Resources:** `src/index.css`, `src/App.tsx`, `public/fonts/` (new),
   `index.html` (preload font?), `scripts/smoke.mjs` (re-run, contract same).
 
-## SLICE-5g PICKUP — Meta polish (authored when 5f commits)
+## SLICE-5g PICKUP — Meta polish (authored after 5f)
 
-## SLICE-5g PICKUP — Meta polish (authored when 5f commits)
+- **Baseline commit:** `1c0aa56` (5f revamp). This is the LAST game slice.
+
+- **What 5f taught (fold in):** the self-hosted font + new palette are the
+  brand; the OG/social card should reflect that look. A controlled HTML card
+  rendered with Playwright (like the screenshots) is the cleanest way to make a
+  crisp promo image with the real fonts/colors.
+
+- **Goal:** ship-ready meta — tab icon (favicon), Open Graph + Twitter cards,
+  `<title>` + description, a promo image, and an accessibility pass. The promo
+  image is reused for both the game's `og:image` and the nilmamano.com /games
+  card.
+
+- **Load-bearing mechanics / traps:**
+  - OG/Twitter need ABSOLUTE URLs: `og:url = https://knight.nilmamano.com`,
+    `og:image` = absolute `https://knight.nilmamano.com/og.png`. Set the real
+    subdomain even before DNS resolves (that's the deploy target).
+  - Favicon: ship `favicon.svg` (matches the new look) + a PNG fallback +
+    `apple-touch-icon`. Add `theme-color`.
+  - Promo image: 1200×630 for OG; render at 2× for a crisp ~2400×1260 card for
+    the /games grid. VERIFY the file exists and the pixel dimensions are right
+    (don't assume).
+  - Keep the title "Knight's Puzzle" (locked). Build-time asset scripts (e.g.
+    an OG renderer) must NOT ship to the runtime bundle.
+  - Accessibility: buttons have accessible names (done); ensure visible focus
+    states and reasonable color contrast; the board buttons are keyboard
+    reachable.
+
+- **Acceptance criteria:**
+  - `index.html` has og:_ + twitter:_ tags, title, description, theme-color,
+    favicon links. Promo `og.png` (1200×630) present + a 2× card image. Favicon
+    refreshed to the new aesthetic.
+  - Visible keyboard focus; no obvious contrast failures.
+  - All gates green (`bun run ci && bun run smoke`); a check that meta tags +
+    image dimensions are correct (probe).
+
+- **Decide-with-reviewer:** the promo card design + how it's generated; favicon
+  style; whether to add a meta/asset assertion to the smoke or a separate probe.
+
+- **Locked:** name "Knight's Puzzle"; client-side only; no runtime deps from
+  asset tooling.
+
+- **Resources:** `index.html`, `public/` (favicon.svg, favicon.png,
+  apple-touch-icon, og.png, card@2x), an off-runtime OG render script.
+
+## DEPLOY (infra — Nil-gated, NOT reviewer-gated; Nil signed off)
+
+- GitHub: create PUBLIC `nmamano/knights-puzzle`, push (gh = nmamano).
+- Vercel: deploy the Vite static build (vercel = nmamano, team
+  `nmamanos-projects`); Vite preset, output `dist`.
+- Domain: attach `knight.nilmamano.com`; nilmamano.com DNS is NOT on Vercel →
+  GIVE NIL the exact CNAME record to add (don't assume DNS access).
+- /games: add Knight's Puzzle AFTER RPS Roulette in
+  `/home/nil/nil/nilmamano.com/app/games/page.tsx` + card image under
+  `public/games/`. That repo has UNRELATED uncommitted changes (resume, a blog
+  file) — commit ONLY the games page + card image, never those.
