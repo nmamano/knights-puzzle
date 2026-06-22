@@ -3,6 +3,13 @@
 **Re-read this file at the start of every iteration.** [why: conversations
 compact, this file does not. It is the loop's memory.]
 
+> ✅ **COMPLETE (2026-06-22).** All slices 5a–5g shipped + reviewer-approved.
+> Code: github.com/nmamano/knights-puzzle. Live on Vercel:
+> https://knights-puzzle.vercel.app (READY). Custom domain knight.nilmamano.com
+> added to the Vercel project — **pending Nil**: add DNS `A knight 76.76.21.21`
+> on Google Cloud DNS. /games listing committed at nilmamano.com `2626b81`
+> (committed, NOT pushed — awaiting Nil's go-ahead / DNS first).
+
 ---
 
 ## North star
