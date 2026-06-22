@@ -196,4 +196,61 @@ path: Cell[]; seed: number }`
 - **Locked (don't relitigate):** no solver; determinism via seeded RNG;
   engine stays pure (no DOM/React).
 
-## SLICE-5b PICKUP — authored when 5a commits, folding in what 5a taught
+## SLICE-5b PICKUP — Minimal playable (authored after 5a)
+
+- **Baseline commit:** `ca86f84` (slice 5a engine, all gates green).
+
+- **What 5a taught (fold in):**
+  - The two-tsconfig split holds; the engine is pure and imported by both UI
+    and tests. Generator signature is `generatePuzzle(n, steps, seed)` — the
+    middle arg is **steps** (knight moves), max cells = `steps + 1`.
+  - `Puzzle.path` is the witness solution — use it as the smoke's solve route.
+  - Reviewer expects: documented constants, explicit failures (no silent bad
+    states), no mutation of caller collections, and non-flaky tests.
+
+- **Goal:** a minimal but real playable game on a dev port. Generate a puzzle,
+  knight on start, click a legal cell to move, track visited, detect win.
+  `window.__KP__` exposes the full authoritative state. Ugly is fine (cute
+  comes in 5c).
+
+- **Load-bearing mechanics / traps:**
+  - **Evidence surface:** `window.__KP__` must expose `knight`, `visited`,
+    `visitedCount`, `totalCells`, `legalMoves`, `won`, and the witness
+    `solution` (= `puzzle.path`) so the smoke can solve the REAL UI via clicks
+    and judge by state, never pixels.
+  - **Smoke contract:** every available cell carries a stable
+    `data-cell="r-c"` attribute. After each click, poll `__KP__.knight` until
+    it matches (click-and-verify — clicks race re-renders).
+  - **Game logic:** keep transitions in a pure `src/game.ts`
+    (`newGame`/`tryMove`/`currentLegalMoves`) so they unit-test without a DOM.
+    `tryMove` no-ops on an illegal click and recomputes `won` via `isWin`.
+  - **Seeds:** initial seed is random (`Date.now`/`Math.random` OK in app code,
+    NEVER in the engine). The smoke reads `solution` from `__KP__`, so it is
+    seed-agnostic.
+  - **Stuck states:** a dead end before covering all cells is possible; 5b
+    ships a "New puzzle" button to recover (undo is 5c).
+
+- **Acceptance criteria:**
+  - Renders a clearly-partial board (start n=6, steps=12), knight on start,
+    end marked; clicking a legal cell moves the knight; illegal click is a
+    no-op; covering all cells ending on the end square shows a win state;
+    "New puzzle" regenerates.
+  - Unit tests for `src/game.ts`: newGame placement; illegal move no-op;
+    legal move advances + records; following `puzzle.path` wins and then
+    `currentLegalMoves` is empty.
+  - Smoke gate rewritten to SOLVE the real UI via clicks and assert
+    `__KP__.won === true` and `visitedCount === totalCells`.
+  - All gates green (`bun run ci && bun run smoke`).
+
+- **Decide-with-reviewer:** the `window.__KP__` shape (esp. exposing the
+  witness `solution`), the initial params (n=6, steps=12), and the
+  `data-cell` selector contract.
+
+- **Locked (don't relitigate):** no solver; win = cover-all-cells AND end on
+  end; judge via the evidence surface; client-side only.
+
+- **Resources:** `src/engine` (exports), `src/game.ts` (new), `src/App.tsx`
+  (rewrite from skeleton), `scripts/smoke.mjs` (rewrite to solve-and-judge),
+  `tests/game.test.ts` (new), `src/index.css`.
+
+## SLICE-5c PICKUP — authored when 5b commits, folding in what 5b taught
