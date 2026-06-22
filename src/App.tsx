@@ -2,8 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Cell } from "./engine";
 import {
   currentLegalMoves,
+  isPerfect,
   newGame,
   resetGame,
+  score,
   tryMove,
   undoMove,
   type GameState,
@@ -65,6 +67,9 @@ export default function App() {
   const legal = useMemo(() => currentLegalMoves(game), [game]);
   const totalCells = game.puzzle.path.length;
   const canUndo = game.visited.length > 1;
+  const scoreVal = score(game);
+  const perfect = isPerfect(game);
+  const stuck = !game.won && legal.length === 0;
 
   // Publish serializable CLONES of authoritative state so external code (the
   // smoke gate) cannot mutate live React/game state by reference.
@@ -81,11 +86,15 @@ export default function App() {
       visited: game.visited.map(cloneCell),
       visitedCount: game.visited.length,
       totalCells,
+      total: totalCells,
+      score: scoreVal,
+      perfect,
+      stuck,
       legalMoves: legal.map(cloneCell),
       solution: game.puzzle.path.map(cloneCell),
       won: game.won,
     };
-  }, [game, legal, totalCells, settings]);
+  }, [game, legal, totalCells, settings, scoreVal, perfect, stuck]);
 
   // Apply new settings AND regenerate a puzzle with a fresh seed.
   const regenerate = useCallback((s: Settings) => {
@@ -134,7 +143,7 @@ export default function App() {
     [game.visited],
   );
 
-  const { puzzle, knight, won, visited } = game;
+  const { puzzle, knight, won } = game;
   const maxBoardPx = puzzle.n * DESK_CELL + (puzzle.n - 1) * GAP + 2 * PAD;
 
   return (
@@ -193,7 +202,7 @@ export default function App() {
       )}
 
       <p className="status" role="status">
-        {won ? "Solved it!" : `Visited ${visited.length} / ${totalCells}`}
+        Score {scoreVal} / {totalCells}
       </p>
 
       <div className="board-wrap">
@@ -257,10 +266,30 @@ export default function App() {
 
         {won && (
           <div className="win-banner" role="alert">
-            🎉 Solved! 🎉
+            <div className="win-text">
+              {perfect
+                ? `Perfect! ${scoreVal}/${totalCells} 🎉`
+                : `Reached the goal! ${scoreVal}/${totalCells}`}
+            </div>
+            {!perfect && (
+              <button
+                type="button"
+                className="btn primary"
+                onClick={handleRetry}
+              >
+                Retry for a better score
+              </button>
+            )}
           </div>
         )}
       </div>
+
+      {stuck && (
+        <p className="stuck-note" role="status">
+          No moves left — <strong>Retry</strong> this board or get a{" "}
+          <strong>New puzzle</strong>.
+        </p>
+      )}
 
       <div className="controls">
         <button type="button" className="btn primary" onClick={handleNewPuzzle}>

@@ -131,9 +131,9 @@ server). The human-facing dev server uses Vite's default 5173.
 - [x] **5d — Content & modes.** Easy/Med/Hard presets (N + path length) and a
       custom board-size / path-length control, on a fluid board that scales by
       size. ✅ committed (reviewer-approved).
-- [ ] **5e — Softer scoring/win (Nil).** Reaching the goal wins; score =
+- [x] **5e — Softer scoring/win (Nil).** Reaching the goal wins; score =
       visited/total squares (e.g. 13/17); imperfect runs get a "retry for a
-      better score" on the win screen. Perfect = all squares.
+      better score" on the win screen. Perfect = all squares. ✅ committed.
 - [ ] **5f — Aesthetic revamp (Nil).** Cozy grass-field / pixel vibe: flat
       EDGE-TO-EDGE tiles (no rounded corners, no gaps) with subtle grid lines,
       two-tone grass checker, hedge/blocked tiles, playful title, horse/knight

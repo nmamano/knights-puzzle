@@ -137,9 +137,11 @@ try {
     throw new Error("pageerrors: " + pageErrors.join("; "));
   }
   if (!final.won) throw new Error("did not win after following the solution");
-  if (final.visitedCount !== final.totalCells) {
-    throw new Error(`covered ${final.visitedCount}/${final.totalCells} cells`);
+  if (final.score !== final.total) {
+    throw new Error(`covered ${final.score}/${final.total} squares`);
   }
+  if (!final.perfect)
+    throw new Error("expected a perfect solve (won && all covered)");
 
   console.log(
     JSON.stringify(
@@ -148,8 +150,9 @@ try {
         difficulty: final.difficulty,
         n: final.n,
         seed: final.seed,
-        solvedCells: final.visitedCount,
-        totalCells: final.totalCells,
+        score: final.score,
+        total: final.total,
+        perfect: final.perfect,
         won: final.won,
         chrome: browser.version(),
       },

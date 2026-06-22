@@ -5,7 +5,46 @@ import {
   currentLegalMoves,
   undoMove,
   resetGame,
+  score,
+  total,
+  isPerfect,
+  isStuck,
+  type GameState,
 } from "../src/game";
+import type { Cell, Puzzle } from "../src/engine";
+
+// Hand-built 4-cell board where the GOAL is a knight move from the start, so
+// the goal can be reached BEFORE all squares are visited (deterministic
+// early-goal coverage — no reliance on a random puzzle exposing the goal).
+// Witness: A(0,0) -> B(1,2) -> C(3,3) -> D(2,1)=goal. D is also a knight move
+// from A directly.
+function earlyGoalGame(): GameState {
+  const n = 4;
+  const path: Cell[] = [
+    { r: 0, c: 0 },
+    { r: 1, c: 2 },
+    { r: 3, c: 3 },
+    { r: 2, c: 1 },
+  ];
+  const available = Array.from({ length: n }, () =>
+    new Array<boolean>(n).fill(false),
+  );
+  for (const c of path) available[c.r][c.c] = true;
+  const puzzle: Puzzle = {
+    n,
+    available,
+    start: path[0],
+    end: path[3],
+    path,
+    seed: 0,
+  };
+  return {
+    puzzle,
+    knight: { r: 0, c: 0 },
+    visited: [{ r: 0, c: 0 }],
+    won: false,
+  };
+}
 
 describe("game state", () => {
   test("newGame places the knight on the start square", () => {
@@ -55,6 +94,72 @@ describe("game state", () => {
     // Even a geometric knight move does nothing after the puzzle is solved.
     const knightish = { r: g.knight.r + 1, c: g.knight.c + 2 };
     expect(tryMove(g, knightish)).toBe(g);
+  });
+});
+
+describe("scoring / softer win", () => {
+  test("the goal is reachable as a legal move from the start (this board)", () => {
+    const g = earlyGoalGame();
+    expect(currentLegalMoves(g)).toContainEqual(g.puzzle.end);
+  });
+
+  test("reaching the goal early wins but is not perfect", () => {
+    const after = tryMove(earlyGoalGame(), { r: 2, c: 1 });
+    expect(after.won).toBe(true);
+    expect(score(after)).toBe(2);
+    expect(total(after)).toBe(4);
+    expect(isPerfect(after)).toBe(false);
+  });
+
+  test("covering all squares and ending on the goal is a perfect win", () => {
+    let g = earlyGoalGame();
+    for (let i = 1; i < g.puzzle.path.length; i++) {
+      g = tryMove(g, g.puzzle.path[i]);
+    }
+    expect(g.won).toBe(true);
+    expect(score(g)).toBe(total(g));
+    expect(isPerfect(g)).toBe(true);
+  });
+
+  test("no legal moves remain once the goal is reached", () => {
+    const g = tryMove(earlyGoalGame(), { r: 2, c: 1 });
+    expect(currentLegalMoves(g)).toEqual([]);
+  });
+
+  test("undo after a goal win steps back and clears won", () => {
+    const won = tryMove(earlyGoalGame(), { r: 2, c: 1 });
+    expect(won.won).toBe(true);
+    const back = undoMove(won);
+    expect(back.won).toBe(false);
+    expect(back.knight).toEqual({ r: 0, c: 0 });
+    expect(score(back)).toBe(1);
+  });
+
+  test("retry (reset) returns to start with score 1 on the same puzzle", () => {
+    const won = tryMove(earlyGoalGame(), { r: 2, c: 1 });
+    const r = resetGame(won);
+    expect(r.puzzle).toBe(won.puzzle);
+    expect(score(r)).toBe(1);
+    expect(r.won).toBe(false);
+  });
+
+  test("isStuck: the start is not stuck; a stranded off-goal position is", () => {
+    expect(isStuck(earlyGoalGame())).toBe(false);
+    // Constructed stranded position: knight on B(1,2); its only available
+    // knight-neighbours (A start, C) are visited, B is not the goal -> no legal
+    // move and not won.
+    const g = earlyGoalGame();
+    const stranded: GameState = {
+      puzzle: g.puzzle,
+      knight: { r: 1, c: 2 },
+      visited: [
+        { r: 0, c: 0 },
+        { r: 3, c: 3 },
+        { r: 1, c: 2 },
+      ],
+      won: false,
+    };
+    expect(isStuck(stranded)).toBe(true);
   });
 });
 

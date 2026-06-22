@@ -52,12 +52,33 @@ export function tryMove(state: GameState, cell: Cell): GameState {
 
   const next: Cell = { r: cell.r, c: cell.c };
   const visited = [...state.visited, next];
+  // Softer win model: reaching the GOAL square wins (coverage is the score).
   return {
     puzzle: state.puzzle,
     knight: next,
     visited,
-    won: isWin(state.puzzle, visited),
+    won: sameCell(next, state.puzzle.end),
   };
+}
+
+/** Squares visited so far (the score). */
+export function score(state: GameState): number {
+  return state.visited.length;
+}
+
+/** Total playable squares (a perfect score). */
+export function total(state: GameState): number {
+  return state.puzzle.path.length;
+}
+
+/** A perfect run: reached the goal AND covered every square (engine isWin). */
+export function isPerfect(state: GameState): boolean {
+  return state.won && isWin(state.puzzle, state.visited);
+}
+
+/** Stuck: not won and no legal move remains (stranded off the goal). */
+export function isStuck(state: GameState): boolean {
+  return !state.won && currentLegalMoves(state).length === 0;
 }
 
 /**
