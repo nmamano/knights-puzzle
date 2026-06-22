@@ -8,6 +8,16 @@ import {
   undoMove,
   type GameState,
 } from "./game";
+import {
+  customSettings,
+  maxSteps,
+  MAX_N,
+  MIN_N,
+  MIN_STEPS,
+  presetSettings,
+  type DifficultyId,
+  type Settings,
+} from "./difficulty";
 
 // Evidence surface: the smoke gate asserts against window.__KP__, never pixels.
 declare global {
@@ -16,8 +26,19 @@ declare global {
   }
 }
 
-const N = 6;
-const STEPS = 12;
+// Desktop sizing — the board width is capped here and shrinks to fit narrow
+// screens via min(92vw, …); cells are fluid (1fr + aspect-ratio), so the board
+// scales with the chosen board size and never overflows.
+const DESK_CELL = 56;
+const GAP = 5;
+const PAD = 12;
+
+const DIFFICULTIES: { id: DifficultyId; label: string }[] = [
+  { id: "easy", label: "Easy" },
+  { id: "medium", label: "Medium" },
+  { id: "hard", label: "Hard" },
+  { id: "custom", label: "Custom" },
+];
 
 function sameCell(a: Cell, b: Cell): boolean {
   return a.r === b.r && a.c === b.c;
@@ -33,9 +54,13 @@ function randomSeed(): number {
 }
 
 export default function App() {
-  const [game, setGame] = useState<GameState>(() =>
-    newGame(N, STEPS, randomSeed()),
+  const [settings, setSettings] = useState<Settings>(() =>
+    presetSettings("medium"),
   );
+  const [game, setGame] = useState<GameState>(() => {
+    const s = presetSettings("medium");
+    return newGame(s.n, s.steps, randomSeed());
+  });
 
   const legal = useMemo(() => currentLegalMoves(game), [game]);
   const totalCells = game.puzzle.path.length;
@@ -48,6 +73,8 @@ export default function App() {
       ready: true,
       seed: game.puzzle.seed,
       n: game.puzzle.n,
+      steps: settings.steps,
+      difficulty: { id: settings.id, n: settings.n, steps: settings.steps },
       start: cloneCell(game.puzzle.start),
       end: cloneCell(game.puzzle.end),
       knight: cloneCell(game.knight),
@@ -58,23 +85,45 @@ export default function App() {
       solution: game.puzzle.path.map(cloneCell),
       won: game.won,
     };
-  }, [game, legal, totalCells]);
+  }, [game, legal, totalCells, settings]);
 
-  const handleCellClick = useCallback((cell: Cell) => {
-    setGame((g) => tryMove(g, cell));
+  // Apply new settings AND regenerate a puzzle with a fresh seed.
+  const regenerate = useCallback((s: Settings) => {
+    setSettings(s);
+    setGame(newGame(s.n, s.steps, randomSeed()));
   }, []);
+
+  const handleDifficulty = useCallback(
+    (id: DifficultyId) => {
+      if (id === "custom") {
+        regenerate(customSettings(settings.n, settings.steps));
+      } else {
+        regenerate(presetSettings(id));
+      }
+    },
+    [regenerate, settings.n, settings.steps],
+  );
+
+  const handleCustomN = useCallback(
+    (n: number) => regenerate(customSettings(n, settings.steps)),
+    [regenerate, settings.steps],
+  );
+
+  const handleCustomSteps = useCallback(
+    (steps: number) => regenerate(customSettings(settings.n, steps)),
+    [regenerate, settings.n],
+  );
 
   const handleNewPuzzle = useCallback(() => {
-    setGame(newGame(N, STEPS, randomSeed()));
-  }, []);
+    setGame(newGame(settings.n, settings.steps, randomSeed()));
+  }, [settings.n, settings.steps]);
 
-  const handleRetry = useCallback(() => {
-    setGame((g) => resetGame(g));
-  }, []);
-
-  const handleUndo = useCallback(() => {
-    setGame((g) => undoMove(g));
-  }, []);
+  const handleRetry = useCallback(() => setGame((g) => resetGame(g)), []);
+  const handleUndo = useCallback(() => setGame((g) => undoMove(g)), []);
+  const handleCellClick = useCallback(
+    (cell: Cell) => setGame((g) => tryMove(g, cell)),
+    [],
+  );
 
   const legalKeys = useMemo(
     () => new Set(legal.map((m) => `${m.r}-${m.c}`)),
@@ -86,6 +135,7 @@ export default function App() {
   );
 
   const { puzzle, knight, won, visited } = game;
+  const maxBoardPx = puzzle.n * DESK_CELL + (puzzle.n - 1) * GAP + 2 * PAD;
 
   return (
     <main>
@@ -94,6 +144,54 @@ export default function App() {
         Hop the knight onto every square and finish on the flag.
       </p>
 
+      <div className="difficulty" role="group" aria-label="Difficulty">
+        {DIFFICULTIES.map(({ id, label }) => (
+          <button
+            key={id}
+            type="button"
+            className={`chip ${settings.id === id ? "active" : ""}`}
+            aria-pressed={settings.id === id}
+            onClick={() => handleDifficulty(id)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {settings.id === "custom" && (
+        <div className="custom-controls">
+          <label className="slider">
+            <span>
+              Board size: <strong>{settings.n}</strong>
+            </span>
+            <input
+              type="range"
+              min={MIN_N}
+              max={MAX_N}
+              step={1}
+              value={settings.n}
+              aria-label="Board size"
+              onChange={(e) => handleCustomN(Number(e.target.value))}
+            />
+          </label>
+          <label className="slider">
+            <span>
+              Path length: <strong>{settings.steps}</strong> (
+              {settings.steps + 1} cells)
+            </span>
+            <input
+              type="range"
+              min={MIN_STEPS}
+              max={maxSteps(settings.n)}
+              step={1}
+              value={settings.steps}
+              aria-label="Path length"
+              onChange={(e) => handleCustomSteps(Number(e.target.value))}
+            />
+          </label>
+        </div>
+      )}
+
       <p className="status" role="status">
         {won ? "Solved it!" : `Visited ${visited.length} / ${totalCells}`}
       </p>
@@ -101,7 +199,10 @@ export default function App() {
       <div className="board-wrap">
         <div
           className="board"
-          style={{ gridTemplateColumns: `repeat(${puzzle.n}, var(--cell))` }}
+          style={{
+            gridTemplateColumns: `repeat(${puzzle.n}, 1fr)`,
+            width: `min(92vw, ${maxBoardPx}px)`,
+          }}
         >
           {puzzle.available.flatMap((row, r) =>
             row.map((avail, c) => {

@@ -67,6 +67,17 @@ try {
     { timeout: 10000 },
   );
 
+  // Change difficulty through the real UI; assert the board actually grew
+  // (Medium n=6 -> Hard n=8) via the evidence surface, then solve the result.
+  await page.getByRole("button", { name: "Hard" }).click();
+  await page.waitForFunction(
+    () => {
+      const s = window.__KP__;
+      return s && s.difficulty && s.difficulty.id === "hard" && s.n === 8;
+    },
+    { timeout: 8000 },
+  );
+
   const startState = await page.evaluate(() => window.__KP__);
   if (startState.won) throw new Error("game started already won");
   if (!Array.isArray(startState.solution) || startState.solution.length < 2) {
@@ -134,6 +145,8 @@ try {
     JSON.stringify(
       {
         ok: true,
+        difficulty: final.difficulty,
+        n: final.n,
         seed: final.seed,
         solvedCells: final.visitedCount,
         totalCells: final.totalCells,

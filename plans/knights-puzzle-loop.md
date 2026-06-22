@@ -123,9 +123,9 @@ server). The human-facing dev server uses Vite's default 5173.
       as the dominant visual, start/end markers, knight piece, legal-move hints,
       visited trail, win celebration, undo / reset / new-puzzle. ✅ committed
       (incl. Nil's notes: checkerboard on blocked cells + Retry/Undo).
-- [ ] **5d — Content & modes (optional/trim-able).** Easy/Med/Hard presets
-      (N + path length) and a custom board-size / path-length control. Maybe a
-      shareable seed.
+- [x] **5d — Content & modes.** Easy/Med/Hard presets (N + path length) and a
+      custom board-size / path-length control, on a fluid board that scales by
+      size. ✅ committed (reviewer-approved).
 - [ ] **5e — Meta polish.** Tab icon (favicon), OG / social cards, page title
       & meta description, mobile/responsive layout, accessibility pass.
 

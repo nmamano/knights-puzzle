@@ -1,17 +1,18 @@
 :root {
-  --cell: 60px;
-
-  /* Playable squares — warm, saturated "wood" checkerboard. */
-  --open-light: #f6e7c1;
-  --open-dark: #d8a25a;
-  /* Removed squares — same checkerboard, desaturated + dimmed. */
-  --blocked-light: #e7e2d6;
-  --blocked-dark: #cabfa8;
+  /* TWO ORTHOGONAL AXES:
+     1. validity (the strong signal): warm "wood" = playable, cool grey =
+        removed, plus elevation.
+     2. checker (a quiet, separate axis): the SAME subtle wash on every dark
+        square regardless of validity. */
+  --valid: #f0d9a0;
+  --invalid: #d7d2df;
+  --checker: rgba(0, 0, 0, 0.1);
 
   --visited: #b9a3f0;
   --visited-edge: #9c80e6;
   --legal: #4f7cff;
   --ink: #2b2640;
+  --accent: #6c8cff;
 
   font-family:
     system-ui,
@@ -55,24 +56,79 @@ h1 {
   margin: 0 0 1rem;
 }
 
+/* Difficulty selector */
+.difficulty {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  background: #ece6fb;
+  border-radius: 999px;
+  margin: 0 auto 0.75rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.chip {
+  border: none;
+  background: transparent;
+  color: #5a5375;
+  font-size: 0.95rem;
+  font-weight: 700;
+  padding: 0.45rem 1rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition:
+    background 0.1s ease,
+    color 0.1s ease;
+}
+.chip:hover {
+  background: #e0d8f7;
+}
+.chip.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+.custom-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  max-width: 22rem;
+  margin: 0 auto 0.75rem;
+}
+.slider {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.9rem;
+  color: #5a5375;
+}
+.slider strong {
+  color: var(--ink);
+}
+.slider input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
 .status {
   font-size: 1.15rem;
   font-weight: 700;
   min-height: 1.5em;
-  margin: 0 0 1rem;
+  margin: 0.25rem 0 1rem;
   color: #4a4366;
 }
 
 .board-wrap {
   position: relative;
-  width: max-content;
+  width: fit-content;
+  max-width: 92vw;
   margin: 0 auto 1.25rem;
 }
 
 .board {
   display: grid;
   gap: 5px;
-  justify-content: center;
   padding: 12px;
   background: #efe9ff;
   border-radius: 16px;
@@ -82,8 +138,11 @@ h1 {
 }
 
 .cell {
-  width: var(--cell);
-  height: var(--cell);
+  position: relative;
+  aspect-ratio: 1 / 1;
+  width: 100%;
+  height: auto;
+  container-type: size;
   display: grid;
   place-items: center;
   border: none;
@@ -91,24 +150,25 @@ h1 {
   padding: 0;
 }
 
-/* Checkerboard — applied to EVERY square so the board always reads as one. */
-.sq.light {
-  background: var(--open-light);
-}
-.sq.dark {
-  background: var(--open-dark);
-}
-
-/* Removed squares: keep the pattern, recede visually. */
-.blocked.light {
-  background: var(--blocked-light);
-}
-.blocked.dark {
-  background: var(--blocked-dark);
+/* Axis 1 — validity (the strong signal). */
+.open {
+  background: var(--valid);
 }
 .blocked {
-  opacity: 0.6;
-  box-shadow: inset 0 0 0 2px rgba(43, 38, 64, 0.05);
+  background: var(--invalid);
+  opacity: 0.72;
+  box-shadow: inset 0 0 0 2px rgba(43, 38, 64, 0.06);
+}
+
+/* Axis 2 — checker: the SAME subtle wash on every dark square, whatever its
+   validity, so light/dark never reads as a different kind of square. */
+.sq.dark::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--checker);
+  border-radius: inherit;
+  pointer-events: none;
 }
 
 /* Playable squares: pop forward, interactive. */
@@ -158,7 +218,9 @@ h1 {
 }
 
 .glyph {
-  font-size: 1.95rem;
+  position: relative;
+  z-index: 1;
+  font-size: 46cqmin;
   line-height: 1;
   filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.18));
 }
@@ -219,8 +281,8 @@ h1 {
   cursor: not-allowed;
 }
 .btn.primary {
-  background: #6c8cff;
-  border-color: #6c8cff;
+  background: var(--accent);
+  border-color: var(--accent);
   color: #fff;
 }
 .btn.primary:hover:not(:disabled) {
@@ -236,14 +298,7 @@ h1 {
 }
 
 @media (max-width: 480px) {
-  :root {
-    --cell: 42px;
-  }
   main {
     padding: 1.25rem 0.5rem 2rem;
-  }
-  .board {
-    gap: 4px;
-    padding: 8px;
   }
 }
