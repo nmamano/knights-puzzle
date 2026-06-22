@@ -311,4 +311,61 @@ path: Cell[]; seed: number }`
 - **Resources:** `src/game.ts` (+undoMove/resetGame), `src/App.tsx`,
   `src/index.css`, `scripts/smoke.mjs`, `tests/game.test.ts`.
 
-## SLICE-5d PICKUP — authored when 5c commits, folding in what 5c taught
+## SLICE-5d PICKUP — Difficulty: presets + custom (authored after 5c)
+
+- **Baseline commit:** `3ee16dc` (5c cutesy UI/UX).
+
+- **What 5c taught (fold in):**
+  - The visual layer is stable; difficulty is mostly a settings/state +
+    small-UI change. `generatePuzzle(n, steps, seed)` already parameterizes
+    board size and length — no engine change expected.
+  - `N`/`STEPS` are currently module constants in `App.tsx`; promote them to
+    state so a difficulty/custom selector can drive `newGame`.
+  - Keep `window.__KP__` the oracle; the solve-and-judge smoke stays
+    seed-agnostic. Mobile must keep fitting 320px as the board grows (bigger
+    `n` on Hard → re-check overflow).
+
+- **Goal:** let the player pick difficulty — Easy / Medium / Hard presets AND
+  a Custom control for board size (n) and path length (steps). "New puzzle"
+  regenerates at the current setting; picking a preset regenerates immediately.
+
+- **Proposed model (decide-with-reviewer):**
+  - Presets → (n, steps): Easy (5, 8), Medium (6, 14), Hard (8, 24). Tunable.
+  - Custom: board size n in [4, 9]; path length `steps` in [3, n*n-1] (slider
+    or number input), clamped to the engine's `n*n-1`. Show the effective
+    cells = steps+1.
+  - Difficulty selector = segmented buttons (Easy/Medium/Hard/Custom); Custom
+    reveals two sliders. Selecting any preset regenerates; changing a custom
+    control regenerates (or on "New puzzle" — decide).
+
+- **Load-bearing mechanics / traps:**
+  - Small boards are constrained (n=3 center has 0 knight moves); keep custom
+    min at n=4 to avoid degenerate puzzles. The generator already retries, but
+    very short boards can yield short paths — that's valid, just note it.
+  - Clamp `steps` to `n*n-1`; recompute the custom max when n changes so the
+    slider can't exceed the board.
+  - Bigger Hard board must not break mobile layout — re-verify 320px at n=8.
+  - Keep `src/game.ts` pure; difficulty is a settings concern (likely a small
+    `src/difficulty.ts` with the preset table + a clamp helper, unit-tested).
+
+- **Acceptance criteria:**
+  - Working Easy/Med/Hard presets + Custom (n + steps) that regenerate a
+    puzzle; the board visibly changes size/fill.
+  - `__KP__` exposes the current `difficulty`/`n`/`steps` so it's inspectable.
+  - Unit tests for the difficulty/clamp helpers (preset values, steps clamp to
+    n\*n-1, custom bounds).
+  - Mobile still fits 320px at the largest preset.
+  - All gates green (`bun run ci && bun run smoke`); smoke still solves & wins.
+
+- **Decide-with-reviewer:** preset numbers; custom ranges and whether custom
+  regenerates live or on "New puzzle"; whether to persist the last choice
+  (localStorage) or keep it in memory; whether the smoke should assert a
+  difficulty switch changes `n`.
+
+- **Locked (don't relitigate):** no rule changes; no solver; client-side only;
+  engine stays pure; mobile must not overflow.
+
+- **Resources:** `src/App.tsx`, `src/difficulty.ts` (likely new),
+  `src/index.css`, `tests/`, `scripts/smoke.mjs`.
+
+## SLICE-5e PICKUP — authored when 5d commits, folding in what 5d taught
