@@ -432,6 +432,63 @@ total` (perfect should still satisfy engine `isWin`). Keep `tryMove`
 - **Resources:** `src/game.ts`, `src/App.tsx`, `tests/game.test.ts`,
   `scripts/smoke.mjs`, `src/engine` (isWin reused as perfect check).
 
-## SLICE-5f PICKUP — Aesthetic revamp (authored when 5e commits)
+## SLICE-5f PICKUP — Aesthetic revamp (authored after 5e)
+
+- **Baseline commit:** `4115d1c` (5e softer scoring/win).
+
+- **Nil's direction:** cozy grass-field / hand-drawn vibe inspired by
+  enclose.horse — but **inspired, NOT cloned**. The reference's creator should
+  feel flattered, not ripped off. Defaults approved: white horse · self-hosted
+  free hand-drawn font · grass-green field · flat EDGE-TO-EDGE tiles.
+
+- **Identity split (LOCKED):**
+  - Shared (the flattery): cozy top-down grass field, flat edge-to-edge tiles,
+    a horse, calm puzzle feel.
+  - Ours (the identity): keep our **lavender/purple UI accent** (theirs is
+    gold/blue); our own palette; our own hand-drawn font (NOT a pixel font like
+    theirs); our knight-flavored white horse; our "Knight's Puzzle" title +
+    difficulty/score layout. Do NOT reproduce their blue-stone wall sprites with
+    flowers, their Day/Wind/Prev/Next chrome, or their exact font.
+
+- **What stays (don't regress):** validity is the DOMINANT visual; checker is a
+  quiet ORTHOGONAL axis; fluid board (no 320px overflow); no viewport-scaled
+  fonts; no rule changes; engine/game.ts untouched; `data-cell="r-c"` on
+  playable squares only; `__KP__` shape unchanged; smoke still solves & wins.
+
+- **Plan:**
+  - Board: flat EDGE-TO-EDGE cells — `border-radius: 0`, `gap: 0`, thin grid
+    lines (1px) between cells. Keep the fluid sizing.
+  - Tiles: playable = open grass (light green), two-tone grass checker; blocked
+    = darker hedge (clearly a wall/removed); visited = a warm trampled-path tan
+    (our own, not their water-blue); legal = a soft glow in our accent; goal =
+    flag/home marker; start = marker; knight = white horse.
+  - Font: self-host ONE free OFL hand-drawn display font (e.g. Patrick Hand /
+    Caveat) for the title/headings; bundle the woff2 + license under
+    `public/fonts/` (offline, NOT an npm dep); body stays system-ui. Verify the
+    font actually loads (FontFace / computed style) — don't assume.
+  - Horse: a simple white horse (inline SVG silhouette or styled glyph) with our
+    own character; not their sprite.
+  - Optional subtle grass texture — sparse, our own motif, or skip; must not
+    fight the validity signal.
+
+- **Acceptance criteria:**
+  - Cozy grass-field look, flat edge-to-edge tiles, white horse, our accent;
+    clearly distinct from enclose.horse (different palette/font/sprite/layout).
+  - Validity dominant, checker quiet/orthogonal; no 320px overflow at Hard/n=9;
+    no viewport-scaled fonts; chosen font verified loaded.
+  - All gates green (`bun run ci && bun run smoke`); smoke unchanged-contract
+    still solves & wins; show Nil before 5g.
+
+- **Decide-with-reviewer:** exact palette + which hand-drawn font; horse as SVG
+  vs styled glyph; whether to add grass texture.
+
+- **Locked:** inspired-not-cloned; validity dominant; checker orthogonal; no
+  rule changes; client-side only; engine/game.ts pure; mobile-safe; no
+  viewport-scaled fonts.
+
+- **Resources:** `src/index.css`, `src/App.tsx`, `public/fonts/` (new),
+  `index.html` (preload font?), `scripts/smoke.mjs` (re-run, contract same).
+
+## SLICE-5g PICKUP — Meta polish (authored when 5f commits)
 
 ## SLICE-5g PICKUP — Meta polish (authored when 5f commits)
