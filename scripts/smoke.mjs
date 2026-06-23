@@ -75,9 +75,9 @@ try {
       `expected to land on the catalog, got view=${landing.view}`,
     );
   }
-  if (landing.catalogSize !== 100 || landing.catalog.length !== 100) {
+  if (landing.catalogSize !== 99 || landing.catalog.length !== 99) {
     throw new Error(
-      `catalog should have 100 entries, got ${landing.catalogSize}`,
+      `catalog should have 99 entries, got ${landing.catalogSize}`,
     );
   }
   if (landing.solvedCount !== 0) {

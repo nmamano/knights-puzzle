@@ -13,16 +13,16 @@ import { difficultyScore } from "../src/analysis";
 const catalog = buildCatalog();
 
 describe("catalog shape", () => {
-  test("has exactly CATALOG_SIZE (100) entries", () => {
-    expect(CATALOG_SIZE).toBe(100);
+  test("has exactly CATALOG_SIZE (99) entries", () => {
+    expect(CATALOG_SIZE).toBe(99);
     expect(catalog.length).toBe(CATALOG_SIZE);
   });
 
-  test("CATALOG_VERSION is 2 (storage rescope is intentional, not accidental)", () => {
-    expect(CATALOG_VERSION).toBe(2);
+  test("CATALOG_VERSION is 3 (storage rescope is intentional, not accidental)", () => {
+    expect(CATALOG_VERSION).toBe(3);
   });
 
-  test("is numbered 1..100 contiguously", () => {
+  test("is numbered 1..99 contiguously", () => {
     expect(catalog.map((p) => p.number)).toEqual(
       Array.from({ length: CATALOG_SIZE }, (_, i) => i + 1),
     );
@@ -37,7 +37,7 @@ describe("catalog shape", () => {
 });
 
 describe("catalog difficulties (unique + ascending)", () => {
-  test("all 100 difficulties are unique", () => {
+  test("all 99 difficulties are unique", () => {
     expect(new Set(catalog.map((p) => p.difficultyScore)).size).toBe(
       CATALOG_SIZE,
     );
@@ -56,9 +56,9 @@ describe("catalog difficulties (unique + ascending)", () => {
     expect(catalog[1].difficultyScore).toBe(2);
   });
 
-  test("#99 is easier than the pinned #100", () => {
-    expect(catalog[98].difficultyScore).toBeLessThan(
-      catalog[99].difficultyScore,
+  test("#98 is easier than the pinned #99", () => {
+    expect(catalog[97].difficultyScore).toBeLessThan(
+      catalog[98].difficultyScore,
     );
   });
 
@@ -69,10 +69,10 @@ describe("catalog difficulties (unique + ascending)", () => {
   });
 });
 
-describe("pinned #100", () => {
-  test("#100 is the kept boss puzzle 7-26-2045617612", () => {
-    const p = catalog[99];
-    expect(p.number).toBe(100);
+describe("pinned #99 (boss)", () => {
+  test("#99 is the kept boss puzzle 7-26-2045617612", () => {
+    const p = catalog[98];
+    expect(p.number).toBe(99);
     expect(p.id).toBe("7-26-2045617612");
     expect(p.n).toBe(7);
     expect(p.steps).toBe(26);
@@ -104,8 +104,8 @@ describe("catalog access", () => {
 
   test("catalogByNumber returns the matching entry or undefined", () => {
     expect(catalogByNumber(1)?.number).toBe(1);
-    expect(catalogByNumber(100)?.number).toBe(100);
+    expect(catalogByNumber(99)?.number).toBe(99);
     expect(catalogByNumber(0)).toBeUndefined();
-    expect(catalogByNumber(101)).toBeUndefined();
+    expect(catalogByNumber(100)).toBeUndefined();
   });
 });

@@ -4,8 +4,9 @@
 compact, this file does not. It is the loop's memory.]
 
 > 🔄 **BATCH 8 IN PROGRESS (2026-06-23, Game Maker).** Nil follow-up: catalog →
-> 99 total (boss becomes #99), move the random sliders to a dedicated random
-> page. Plan + Vercel-analytics answer at the BOTTOM ("BATCH 8"). Reviewer = Game
+> 99 total (boss becomes #99), move the random sliders into the random GAMEPLAY
+> screen (Nil clarified — no 3rd view), and wire up @vercel/analytics (Nil
+> enabled the dashboard toggle). Plan at the BOTTOM ("BATCH 8"). Reviewer = Game
 > Reviewer.
 >
 > ✅ **BATCH 7 COMPLETE (2026-06-23, Game Maker).** Shipped 7a–7d, all reviewer-
@@ -972,26 +973,34 @@ Same gated loop. Reviewer = Game Reviewer
 
 ## Asks → slices
 
-- [ ] **8a — Catalog = 99 total, boss is #99 (clarification of 7a).** Nil: "total
+- [x] **8a — Catalog = 99 total, boss is #99 (clarification of 7a).** Nil: "total
       number of puzzles should be 99, with the one that was #100 as new #99." So
       `CATALOG_SIZE = 99`; #1–#98 = the 98 SMALLEST distinct difficulties; #99 =
       the pinned boss (`7-26-2045617612`). Bump `CATALOG_VERSION` → 3 (re-scopes
       storage). Update catalog tests (#98 < #99, #99 pinned, 99 unique, etc.). The
       Next-button bound already uses `number < CATALOG_SIZE`, so Next hides on #99.
-- [ ] **8b — Random-puzzle page (move sliders off the landing).** Nil: "Move the
-      random puzzle sliders to inside the random puzzle 'page', not the landing
-      page." Plan: landing keeps a "Random puzzle" button (no sliders); clicking
-      it opens a dedicated random-config view (3rd view) with the board-size +
-      path-length sliders + a "Generate" button + back-to-list. `__KP__.view`
-      gains "random". (CONFIRM with Nil: dedicated config page vs. knobs in the
-      random play view — proceeding with the config page.)
+      ✅ gates green; awaiting diff-gate. Renamed PINNED_100→PINNED_BOSS; #98=6144,
+      #99=2,764,800; smoke catalogSize assertion → 99.
+- [ ] **8b — Random knobs in the random GAMEPLAY screen (move off the landing).**
+      Nil clarified: "knobs directly in the random puzzle gameplay screen." So NO
+      3rd view. Landing keeps just a "Generate random puzzle" button (sliders
+      removed). The PLAY view, when the active puzzle is random (source.number
+      null), shows the board-size + path-length sliders. Changing a slider LIVE-
+      regenerates a random puzzle at the new size/length (so the knobs always
+      match the puzzle on screen); the existing "New random puzzle" button keeps
+      the settings + new seed. Catalog play view shows NO knobs. `__KP__` already
+      exposes randomSettings; smoke moves the slider interaction into the random
+      play view (Generate → play → slide board size → assert __KP__.n).
+- [ ] **8c — Vercel Web Analytics.** Nil ENABLED the dashboard toggle (the
+      human-only part). Add `@vercel/analytics` + `<Analytics/>` to the app so the
+      deployed site reports page views. Inert in dev/local (no-op outside Vercel
+      prod), so ci/smoke unaffected. Adds one small dep (package.json + bun.lock).
+      Build stays green. Do AFTER 8b.
 
 ## Vercel usage tracking (Nil Q2) — answer
 
 - The knight puzzle is a SEPARATE Vercel project from nilmamano.com, so
-  nilmamano.com's analytics do NOT cover it. package.json has no
-  `@vercel/analytics` → currently NOT tracked.
-- To enable: (a) toggle Web Analytics on the knights-puzzle project in the Vercel
-  dashboard (Nil's account), and (b) add `@vercel/analytics` + `<Analytics/>` to
-  the app (a small code change I can do — no deploy). Nil-gated; offer as a slice
-  when we next deploy.
+  nilmamano.com's analytics do NOT cover it. For a Vite SPA the dashboard toggle
+  alone won't collect data without the `@vercel/analytics` script.
+- Nil enabled Web Analytics on the dashboard → slice 8c adds the package +
+  `<Analytics/>`. Inert locally; collects once deployed (deploy stays Nil-gated).

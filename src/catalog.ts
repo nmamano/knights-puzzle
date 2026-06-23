@@ -1,8 +1,8 @@
-// Knight's Puzzle — the 100-puzzle catalog (pure, deterministic).
+// Knight's Puzzle — the 99-puzzle catalog (pure, deterministic).
 //
-// A fixed, reproducible set of 100 puzzles. #1..#99 are harvested so that EVERY
-// difficulty is unique — the 99 SMALLEST distinct difficulty scores, ascending
-// (so #1 = difficulty 1, #2 = difficulty 2, then unique upward). #100 is a
+// A fixed, reproducible set of 99 puzzles. #1..#98 are harvested so that EVERY
+// difficulty is unique — the 98 SMALLEST distinct difficulty scores, ascending
+// (so #1 = difficulty 1, #2 = difficulty 2, then unique upward). #99 is a
 // PINNED hard "boss" (the landmark final puzzle). The whole catalog is a pure
 // function of CATALOG_MASTER_SEED + the pinned params, so every player sees the
 // same list. There is NO solver: each puzzle is a generated witness walk and
@@ -12,32 +12,33 @@ import { generatePuzzle, makeRng } from "./engine";
 import { difficultyScore } from "./analysis";
 import { maxSteps, MIN_N, MIN_STEPS } from "./difficulty";
 
-export const CATALOG_SIZE = 100;
+export const CATALOG_SIZE = 99;
 
 // Bump CATALOG_VERSION whenever generation, the master seed, the pinned puzzle,
 // the parameter ranges, or the id scheme change — it scopes saved progress
-// (storage key kp:solved:v${CATALOG_VERSION}). v2: unique-difficulty catalog.
-export const CATALOG_VERSION = 2;
+// (storage key kp:solved:v${CATALOG_VERSION}). v3: 99 puzzles (a 98-puzzle
+// unique-difficulty ramp + the pinned boss as #99).
+export const CATALOG_VERSION = 3;
 
-// The harvest is a pure function of this seed; changing it reshuffles #1..#99.
+// The harvest is a pure function of this seed; changing it reshuffles #1..#98.
 export const CATALOG_MASTER_SEED = 0x6b6e6967; // "knig"
 
-// The pinned final puzzle (#100): the hard landmark kept by request. Its
-// difficulty (2,764,800) is reserved — never reused by #1..#99.
-const PINNED_100 = { n: 7, steps: 26, seed: 2045617612 } as const;
+// The pinned final puzzle (#99): the hard landmark kept by request. Its
+// difficulty (2,764,800) is reserved — never reused by #1..#98.
+const PINNED_BOSS = { n: 7, steps: 26, seed: 2045617612 } as const;
 
-// Largest board #1..#99 draw (keeps difficulty human-scale + the board
+// Largest board #1..#98 draw (keeps difficulty human-scale + the board
 // mobile-friendly). MIN_N (4) is the smallest.
 const MAX_CATALOG_N = 8;
 // Upper bounds on path length so candidate difficulties stay human-scale.
 const STEPS_FRACTION_CAP = 0.7;
 const MAX_CATALOG_STEPS = 26;
 // Deterministic candidate pool size. Empirically yields ~280 distinct
-// difficulties — far more than the 99 needed — so the 99 smallest are stable.
+// difficulties — far more than the 98 needed — so the smallest 98 are stable.
 const HARVEST_ATTEMPTS = 8000;
 
 export type CatalogPuzzle = {
-  /** 1..100, assigned after ranking (#1 easiest … #99, then pinned #100). */
+  /** 1..99, assigned after ranking (#1 easiest … #98, then pinned #99). */
   number: number;
   /** Stable id `${n}-${steps}-${seed}` — regenerates the exact puzzle. */
   id: string;
@@ -98,28 +99,28 @@ function compareCandidates(a: Candidate, b: Candidate): number {
 }
 
 /**
- * Build the catalog: 100 deterministic puzzles with UNIQUE difficulties. #1..#99
- * are the 99 smallest distinct difficulty scores (ascending); #100 is the pinned
+ * Build the catalog: 99 deterministic puzzles with UNIQUE difficulties. #1..#98
+ * are the 98 smallest distinct difficulty scores (ascending); #99 is the pinned
  * boss. Pure — same output on every call.
  */
 export function buildCatalog(): CatalogPuzzle[] {
-  const pinned = makeEntry(PINNED_100.n, PINNED_100.steps, PINNED_100.seed);
+  const boss = makeEntry(PINNED_BOSS.n, PINNED_BOSS.steps, PINNED_BOSS.seed);
 
   // Harvest ONE representative per distinct difficulty from a deterministic
-  // pool; the pinned difficulty is reserved for #100, so it never appears below.
+  // pool; the pinned difficulty is reserved for #99, so it never appears below.
   const rng = makeRng(CATALOG_MASTER_SEED);
   const byDifficulty = new Map<number, Candidate>();
   for (let i = 0; i < HARVEST_ATTEMPTS; i++) {
     const { n, steps, seed } = drawParams(rng);
     const cand = makeEntry(n, steps, seed);
-    if (cand.difficultyScore === pinned.difficultyScore) continue; // → #100 only
+    if (cand.difficultyScore === boss.difficultyScore) continue; // → #99 only
     const prev = byDifficulty.get(cand.difficultyScore);
     if (!prev || compareCandidates(cand, prev) < 0) {
       byDifficulty.set(cand.difficultyScore, cand);
     }
   }
 
-  // The 99 SMALLEST distinct difficulties, ascending → #1..#99; pin #100.
+  // The 98 SMALLEST distinct difficulties, ascending → #1..#98; pin #99.
   const ranked = [...byDifficulty.values()].sort(compareCandidates);
   if (ranked.length < CATALOG_SIZE - 1) {
     throw new Error(
@@ -129,7 +130,7 @@ export function buildCatalog(): CatalogPuzzle[] {
   const catalog: CatalogPuzzle[] = ranked
     .slice(0, CATALOG_SIZE - 1)
     .map((c, i) => ({ ...c, number: i + 1 }));
-  catalog.push({ ...pinned, number: CATALOG_SIZE });
+  catalog.push({ ...boss, number: CATALOG_SIZE });
   return catalog;
 }
 
@@ -141,7 +142,7 @@ export function getCatalog(): CatalogPuzzle[] {
   return cached;
 }
 
-/** Look up a catalog puzzle by its 1..100 number. */
+/** Look up a catalog puzzle by its 1..99 number. */
 export function catalogByNumber(n: number): CatalogPuzzle | undefined {
   return getCatalog().find((p) => p.number === n);
 }
