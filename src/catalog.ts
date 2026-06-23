@@ -15,10 +15,11 @@ import { maxSteps, MIN_N, MIN_STEPS } from "./difficulty";
 export const CATALOG_SIZE = 99;
 
 // Bump CATALOG_VERSION whenever generation, the master seed, the pinned puzzle,
-// the parameter ranges, or the id scheme change — it scopes saved progress
-// (storage key kp:solved:v${CATALOG_VERSION}). v3: 99 puzzles (a 98-puzzle
-// unique-difficulty ramp + the pinned boss as #99).
-export const CATALOG_VERSION = 3;
+// the parameter ranges, the id scheme, OR the difficulty formula change — it
+// scopes saved progress (storage key kp:solved:v${CATALOG_VERSION}). v4: the
+// difficulty formula stopped counting an early hop to the goal as a branch,
+// which reshuffles #1..#98.
+export const CATALOG_VERSION = 4;
 
 // The harvest is a pure function of this seed; changing it reshuffles #1..#98.
 export const CATALOG_MASTER_SEED = 0x6b6e6967; // "knig"

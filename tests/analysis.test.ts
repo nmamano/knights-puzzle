@@ -57,6 +57,20 @@ describe("branchingProfile", () => {
     const p = generatePuzzle(6, 14, 7);
     expect(branchingProfile(p).length).toBe(p.path.length - 1);
   });
+
+  test("an early hop to the goal does NOT count as a branch", () => {
+    // From the start (0,0) the knight can legally go to B=(1,2) [the witness
+    // next] OR D=(2,1) [the GOAL]. Hopping to the goal early ends the run, so it
+    // must NOT inflate the branching factor: step 0 has 1 real option, not 2.
+    const p = buildPuzzle(4, [
+      { r: 0, c: 0 },
+      { r: 1, c: 2 },
+      { r: 3, c: 3 },
+      { r: 2, c: 1 }, // = goal, also reachable directly from the start
+    ]);
+    expect(branchingProfile(p)).toEqual([1, 1, 1]);
+    expect(difficultyScore(p)).toBe(1);
+  });
 });
 
 describe("difficultyScore", () => {

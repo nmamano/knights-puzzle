@@ -3,6 +3,11 @@
 **Re-read this file at the start of every iteration.** [why: conversations
 compact, this file does not. It is the loop's memory.]
 
+> ✅ **BATCH 9 COMPLETE (2026-06-23, Game Maker).** Difficulty no longer counts
+> an early hop to the goal as a branch (`branchingProfile`); catalog reshuffled,
+> `CATALOG_VERSION` → 4; boss #99 2,764,800 → 2,073,600 (still hardest). Reviewer-
+> approved (95 tests). Commit below. Running on 5280. NOT pushed/deployed.
+>
 > ✅ **BATCH 8 COMPLETE (2026-06-23, Game Maker).** Shipped 8a–8c, all reviewer-
 > approved: catalog → 99 puzzles (boss = #99, CATALOG_VERSION 3), random
 > board-size/path-length knobs moved into the random GAMEPLAY screen (live-
@@ -1014,12 +1019,36 @@ Same gated loop. Reviewer = Game Reviewer
 
 All three slices committed, gates green, each plan-gated + diff-gated.
 
-| Slice | Commit | What landed |
-|---|---|---|
-| 8a | `6240636` | catalog = 99 (CATALOG_SIZE 99, VERSION 3); #1–#98 unique-difficulty ramp; #99 = pinned boss `7-26-2045617612` |
-| 8b | `87bc496` | random board-size/path-length knobs moved off the landing INTO the random gameplay screen (live-regenerate; untracked) |
-| 8c | `818eab3` | `@vercel/analytics@2.0.1` + `<Analytics/>` (official React entrypoint, PROD-gated, inert in dev) |
+| Slice | Commit    | What landed                                                                                                            |
+| ----- | --------- | ---------------------------------------------------------------------------------------------------------------------- |
+| 8a    | `6240636` | catalog = 99 (CATALOG_SIZE 99, VERSION 3); #1–#98 unique-difficulty ramp; #99 = pinned boss `7-26-2045617612`          |
+| 8b    | `87bc496` | random board-size/path-length knobs moved off the landing INTO the random gameplay screen (live-regenerate; untracked) |
+| 8c    | `818eab3` | `@vercel/analytics@2.0.1` + `<Analytics/>` (official React entrypoint, PROD-gated, inert in dev)                       |
 
 **Not done (Nil-gated):** push / Vercel deploy / DNS. Deploying batch 6–8 +
 analytics is one `git push` + Vercel redeploy away whenever Nil wants.
 **Parked confirmations:** solved = won (★ for perfect) — still the shipped default.
+
+---
+
+# BATCH 9 — difficulty formula tweak (Nil, 2026-06-23)
+
+**Status: IN PROGRESS.** Nil: "the difficulty formula shouldn't consider moving
+to the final square before the final turn as an actual option that counts toward
+the branching factor." Lowers some difficulties → reshuffles/dedups the catalog.
+
+## Slice (tick on commit)
+
+- [x] **9a — Early-goal isn't a branch (analysis + catalog v4).** ✅ committed
+      (reviewer-approved; 95 tests). In
+      `branchingProfile`, on each NON-final move, drop the GOAL from the legal-
+      option count (reaching the goal early ENDS the run — an exit, not a path
+      branch). On the FINAL move (the correct play IS the goal) it still counts.
+      `difficultyScore` follows automatically; the catalog reshuffles →
+      `CATALOG_VERSION` → 4 (storage re-scopes; solved progress resets again).
+      Boss (#99) difficulty 2,764,800 → 2,073,600, still the hardest; harvest
+      still yields 250 distinct (need 98); #1=1, #2=2, #98=5832, 99 unique +
+      strictly ascending. Tests: new "early hop to goal isn't a branch"
+      ([1,1,1] → score 1); existing [2,3,4] → 24 and [1,2] → 2 still hold (their
+      goals are only the FINAL move); catalog #99 difficulty + VERSION assertions
+      updated. Pure; witness-only; no solver.

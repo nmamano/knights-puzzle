@@ -18,8 +18,8 @@ describe("catalog shape", () => {
     expect(catalog.length).toBe(CATALOG_SIZE);
   });
 
-  test("CATALOG_VERSION is 3 (storage rescope is intentional, not accidental)", () => {
-    expect(CATALOG_VERSION).toBe(3);
+  test("CATALOG_VERSION is 4 (storage rescope is intentional, not accidental)", () => {
+    expect(CATALOG_VERSION).toBe(4);
   });
 
   test("is numbered 1..99 contiguously", () => {
@@ -77,7 +77,7 @@ describe("pinned #99 (boss)", () => {
     expect(p.n).toBe(7);
     expect(p.steps).toBe(26);
     expect(p.seed).toBe(2045617612);
-    expect(p.difficultyScore).toBe(2764800);
+    expect(p.difficultyScore).toBe(2073600);
     expect(p.cells).toBe(27);
   });
 });
