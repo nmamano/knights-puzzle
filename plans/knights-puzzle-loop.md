@@ -624,9 +624,11 @@ Same gate stack (`bun run ci && bun run smoke`). `window.__KP__` grows new field
       ✅ committed (reviewer-approved). Reviewer note for 6b: difficultyScore is
       a display/ranking heuristic — add a deterministic tie-breaker (score, n,
       actual path length, seed/id) so catalog order is stable.
-- [ ] **6b — Puzzle catalog (pure).** Deterministic `buildCatalog()` → 100
+- [x] **6b — Puzzle catalog (pure).** Deterministic `buildCatalog()` → 100
       puzzles across random n/steps, scored, sorted ascending, numbered 1..100.
       Unit-tested (deterministic, exactly 100, sorted, each regenerates valid).
+      ✅ committed (reviewer-approved). Tuned: n∈[4..8], steps capped at 26 →
+      scores span 1..~2.76M, 50 distinct, all boards represented.
 - [ ] **6c — Landing page + routing.** Catalog view (grid of 100 sorted tiles) ↔
       play view; REMOVE the easy/med/hard/custom menu; add "Generate random
       puzzle" (= old custom, untracked) at the bottom. `__KP__.view`/`puzzleNumber`.
@@ -705,3 +707,31 @@ Fold these into the relevant slices:
 - **Decide-with-reviewer:** module name/location; whether to also expose
   `branchingProfile`; overflow handling; the play-view label copy.
 - **Locked:** witness-only (no solver); pure; engine/game rules untouched.
+
+## SLICE-6b PICKUP — Puzzle catalog (authored after 6a)
+
+- **Baseline commit:** `d00a152` (6a difficulty score).
+- **What 6a taught (fold in):** `difficultyScore(puzzle)` is the ranking key;
+  it can grow large fast, so cap path length to keep catalog numbers human-scale.
+  Reviewer: treat the score as a display/ranking heuristic + add a deterministic
+  tie-breaker.
+- **Goal:** `src/catalog.ts` — a pure, deterministic list of 100 puzzles spanning
+  random board sizes + path lengths, ranked by difficulty (ascending), numbered
+  1..100. Stable across reloads/users (fixed master seed). No UI yet (6c wires it).
+- **Decisions made (assistant-alone generator tuning, reviewer-noted):**
+  - `CATALOG_MASTER_SEED = 0x6b6e6967`, `CATALOG_SIZE = 100`,
+    `CATALOG_VERSION = 1` (bump if gen/seed/id scheme change — scopes 6d storage).
+  - Draw `n ∈ [4..8]`; `steps ∈ [max(MIN_STEPS, n+1) .. min(maxSteps(n),
+    round(0.7·maxSteps(n)), 26)]` — the 26-cap keeps the hardest puzzles playable
+    by hand and scores in the low millions, not 10¹¹.
+  - Stable `id = "${n}-${steps}-${seed}"` regenerates the exact puzzle.
+  - Store ACTUAL `cells = puzzle.path.length` (a walk can dead-end < steps+1).
+  - Sort: `difficultyScore` asc, tie-break `n`, then `cells`, then `id`.
+  - `getCatalog()` memoizes; `catalogByNumber(n)` looks up.
+- **Measured spread:** scores 1..~2,764,800; 50 distinct; 4 trivial (score 1);
+  n distribution {4:19, 5:17, 6:28, 7:18, 8:18}; max cells 27. All ids unique.
+- **Acceptance criteria (met):** exactly 100; numbered 1..100; non-decreasing
+  scores; deterministic (deep-equal across calls); each entry regenerates with
+  matching score + cells; multi-board + many-distinct-score spread; all finite.
+  11 unit tests. `bun run ci && bun run smoke` green.
+- **Locked:** deterministic + stable catalog; no solver; pure.
