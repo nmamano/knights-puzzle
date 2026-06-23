@@ -634,9 +634,11 @@ Same gate stack (`bun run ci && bun run smoke`). `window.__KP__` grows new field
       puzzle" (= old custom, untracked) at the bottom. `__KP__.view`/`puzzleNumber`.
       ✅ committed (reviewer-approved). Component is `src/CatalogView.tsx`
       (renamed off `Catalog.tsx` — resolver collided with `catalog.ts`).
-- [ ] **6d — Solved tracking (localStorage).** Persist solved catalog puzzles
+- [x] **6d — Solved tracking (localStorage).** Persist solved catalog puzzles
       (won; star if perfect); show on tiles; random runs untracked. Pure storage
       module (injectable Storage) unit-tested; smoke confirms persistence.
+      ✅ committed (reviewer-approved). Recording happens on the winning CLICK
+      (not an effect) so View-Solution playback won't mark a puzzle solved.
 - [ ] **6e — View Solution button (play view).** Reveal the witness solution
       (playback from a reset along `puzzle.path`); board inert during playback;
       `__KP__.solutionShown`. Smoke clicks it and judges via the surface.
@@ -763,3 +765,33 @@ round(0.7·maxSteps(n)), 26)]` — the 26-cap keeps the hardest puzzles playable
   back, then random (puzzleNumber null). `bun run ci && bun run smoke` green.
 - **Locked:** catalog is the landing; no difficulty menu; random untracked; no
   rule changes; no solver; client-side only.
+
+## SLICE-6d PICKUP — Solved tracking (authored after 6c)
+
+- **Baseline commit:** `a4f497d` (6c landing/routing).
+- **What 6c taught (fold in):** `view` is the discriminator; `__KP__` reflects
+  the last active source/game even on the catalog → don't infer "solved" from
+  being on the catalog. Record off (source.id + won/perfect) only.
+- **Goal:** persist which of the 100 are solved (won) / perfect (all squares),
+  show ✓/★ on tiles + a "Solved N/100" count; random puzzles never tracked.
+- **Decisions made:**
+  - New `src/storage.ts` — pure, injectable `StorageLike` (getItem/setItem);
+    `loadSolved`/`recordSolved`/`solvedCount`/`perfectCount`. Key
+    `kp:solved:v${CATALOG_VERSION}`. Corrupt/missing/unavailable ⇒ `{}` (never
+    throws); write failures swallowed (best-effort) — play never breaks.
+  - `recordSolved(storage, map, id, perfect)`: `id` null ⇒ no-op (random never
+    tracked); `perfect` STICKY (prior star kept on a later imperfect win);
+    returns the SAME map reference when unchanged.
+  - Recording fires in the winning CLICK handler (a move is the only win path),
+    NOT a `useEffect` — avoids `react-hooks/set-state-in-effect` AND keeps future
+    View-Solution playback from marking a puzzle solved.
+  - `__KP__` gains `solved` (clone), `solvedCount`, `perfectCount`.
+- **Reviewer conditions met:** injected Storage + graceful degradation; random
+  `puzzleId` null never writes; solved updates only on transition to won;
+  sticky perfect; `view` used as the smoke discriminator.
+- **Acceptance (met):** 9 storage unit tests (load/sanitize/record/sticky/no-op/
+  no-mutate/write-failure/counts); smoke now solves #1 (perfect) → asserts
+  `solvedCount===1` + record solved+perfect → reloads (persists) → wins a random
+  puzzle and asserts `solvedCount` UNCHANGED. `bun run ci && bun run smoke` green.
+- **Locked:** client-side localStorage only; random untracked; sticky perfect;
+  no solver; key scoped by CATALOG_VERSION.

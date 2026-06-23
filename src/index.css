@@ -76,6 +76,7 @@ h1 {
   max-width: min(92vw, 560px);
 }
 .puzzle-tile {
+  position: relative;
   width: 100%;
   aspect-ratio: 1;
   display: flex;
@@ -102,10 +103,36 @@ h1 {
   outline: 3px solid var(--accent);
   outline-offset: 2px;
 }
+/* Solved = green (done); perfect = lavender accent (full coverage). */
+.puzzle-tile.solved {
+  border-color: #79bb57;
+  background: #ecf7e3;
+}
+.puzzle-tile.perfect {
+  border-color: var(--accent);
+  background: #efeaff;
+}
 .tile-number {
   font-family: var(--display);
   font-size: 1.35rem;
   line-height: 1;
+}
+.tile-badge {
+  position: absolute;
+  top: 1px;
+  right: 4px;
+  font-size: 0.85rem;
+  line-height: 1;
+  color: var(--accent);
+}
+.puzzle-tile.solved:not(.perfect) .tile-badge {
+  color: #5a9c39;
+}
+.catalog-progress {
+  font-family: var(--display);
+  color: #6b6580;
+  font-size: 1.1rem;
+  margin: 0 0 0.75rem;
 }
 .catalog-foot {
   color: #6b6580;

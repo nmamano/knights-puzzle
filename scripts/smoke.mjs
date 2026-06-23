@@ -145,22 +145,52 @@ try {
     );
   }
 
+  // The win must be RECORDED for this catalog puzzle: wait for the solved count.
+  await page.waitForFunction(
+    () => {
+      const s = window.__KP__;
+      return s && s.won && s.perfect && s.solvedCount === 1;
+    },
+    { timeout: 5000 },
+  );
   const solved = await page.evaluate(() => window.__KP__);
-  if (!solved.won) throw new Error("did not win after following the solution");
   if (solved.score !== solved.total) {
     throw new Error(`covered ${solved.score}/${solved.total} squares`);
   }
-  if (!solved.perfect)
-    throw new Error("expected a perfect solve (won && all covered)");
+  const solvedId = solved.puzzleId;
+  if (!solved.solved[solvedId] || !solved.solved[solvedId].perfect) {
+    throw new Error("catalog win was not recorded as solved+perfect");
+  }
 
-  // Navigate back to the catalog.
+  // Navigate back to the catalog; the solved count carries over.
   await page.getByRole("button", { name: /all puzzles/i }).click();
   await page.waitForFunction(
-    () => window.__KP__ && window.__KP__.view === "catalog",
+    () =>
+      window.__KP__ &&
+      window.__KP__.view === "catalog" &&
+      window.__KP__.solvedCount === 1,
     { timeout: 5000 },
   );
 
-  // "Generate random puzzle" loads an UNTRACKED random puzzle (puzzleNumber null).
+  // Persistence: reload; localStorage must restore the solved state.
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await page.waitForFunction(
+    () =>
+      window.__KP__ &&
+      window.__KP__.ready === true &&
+      window.__KP__.view === "catalog",
+    { timeout: 10000 },
+  );
+  const reloaded = await page.evaluate(() => window.__KP__);
+  if (reloaded.solvedCount !== 1) {
+    throw new Error("solved state did not persist across reload");
+  }
+  if (!reloaded.solved[solvedId] || !reloaded.solved[solvedId].perfect) {
+    throw new Error("perfect star did not persist across reload");
+  }
+
+  // "Generate random puzzle" loads an UNTRACKED random puzzle — winning it must
+  // NOT change the solved count.
   await page.getByRole("button", { name: /generate random puzzle/i }).click();
   await page.waitForFunction(
     () => {
@@ -178,6 +208,37 @@ try {
   }
   if (random.won) throw new Error("random puzzle started already won");
 
+  // Solve the random puzzle via its witness, then confirm it stayed untracked.
+  for (let i = 1; i < random.solution.length; i++) {
+    const { r, c } = random.solution[i];
+    await page.click(`[data-cell="${r}-${c}"]`);
+    await page.waitForFunction(
+      (target) => {
+        const k = window.__KP__ && window.__KP__.knight;
+        return k && k.r === target.r && k.c === target.c;
+      },
+      { r, c },
+      { timeout: 5000 },
+    );
+  }
+  await page.waitForFunction(
+    () => window.__KP__ && window.__KP__.won === true,
+    {
+      timeout: 5000,
+    },
+  );
+  await page.getByRole("button", { name: /all puzzles/i }).click();
+  await page.waitForFunction(
+    () => window.__KP__ && window.__KP__.view === "catalog",
+    { timeout: 5000 },
+  );
+  const afterRandom = await page.evaluate(() => window.__KP__);
+  if (afterRandom.solvedCount !== 1) {
+    throw new Error(
+      `random win must not be tracked (solvedCount=${afterRandom.solvedCount})`,
+    );
+  }
+
   if (pageErrors.length) {
     throw new Error("pageerrors: " + pageErrors.join("; "));
   }
@@ -187,12 +248,13 @@ try {
       {
         ok: true,
         solvedPuzzle: solved.puzzleNumber,
-        n: solved.n,
-        seed: solved.seed,
+        solvedId,
         score: solved.score,
         total: solved.total,
         perfect: solved.perfect,
         difficultyScore: solved.difficultyScore,
+        persistedSolvedCount: reloaded.solvedCount,
+        afterRandomSolvedCount: afterRandom.solvedCount,
         random: { puzzleNumber: random.puzzleNumber, n: random.n },
         chrome: browser.version(),
       },

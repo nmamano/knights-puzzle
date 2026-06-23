@@ -14,6 +14,14 @@ import { maxSteps, MAX_N, MIN_N, MIN_STEPS } from "./difficulty";
 import { difficultyScore } from "./analysis";
 import { CATALOG_SIZE, getCatalog, type CatalogPuzzle } from "./catalog";
 import CatalogView from "./CatalogView";
+import {
+  defaultStorage,
+  loadSolved,
+  perfectCount,
+  recordSolved,
+  solvedCount,
+  type SolvedMap,
+} from "./storage";
 
 // Evidence surface: the smoke gate asserts against window.__KP__, never pixels.
 declare global {
@@ -88,6 +96,11 @@ export default function App() {
   // SNAPS to the start instead of sliding. Moves/undo keep the same gen, so the
   // piece slides.
   const [gen, setGen] = useState(0);
+
+  // Solved-tracking (localStorage, best-effort). Probed once; if unavailable the
+  // game stays fully playable, just untracked. Random puzzles are never saved.
+  const storage = useMemo(() => defaultStorage(), []);
+  const [solved, setSolved] = useState<SolvedMap>(() => loadSolved(storage));
 
   // The trail is split into a SETTLED polyline (fully drawn) plus one ACTIVE
   // segment that animates in sync with the knight's slide: a move DRAWS the new
@@ -196,6 +209,9 @@ export default function App() {
       legalMoves: legal.map(cloneCell),
       solution: game.puzzle.path.map(cloneCell),
       won: game.won,
+      solved: { ...solved },
+      solvedCount: solvedCount(solved),
+      perfectCount: perfectCount(solved),
     };
   }, [
     view,
@@ -208,6 +224,7 @@ export default function App() {
     perfect,
     stuck,
     catalogSummary,
+    solved,
   ]);
 
   // Start a game from a source (catalog or random) and switch to the play view.
@@ -235,9 +252,22 @@ export default function App() {
   }, []);
   // Undo keeps the same gen, so the piece slides back one step.
   const handleUndo = useCallback(() => setGame((g) => undoMove(g)), []);
+  // A move is the ONLY way to win, so record a catalog win right here (sticky
+  // perfect). Random puzzles (source.id null) are a no-op inside recordSolved.
+  // Keeping this out of the play loop also means "View Solution" playback (6e)
+  // can advance the board WITHOUT marking the puzzle solved.
   const handleCellClick = useCallback(
-    (cell: Cell) => setGame((g) => tryMove(g, cell)),
-    [],
+    (cell: Cell) => {
+      const next = tryMove(game, cell);
+      if (next === game) return; // illegal / no-op
+      setGame(next);
+      if (next.won && source.id) {
+        setSolved((cur) =>
+          recordSolved(storage, cur, source.id, isPerfect(next)),
+        );
+      }
+    },
+    [game, source, storage],
   );
 
   const legalKeys = useMemo(
@@ -258,7 +288,11 @@ export default function App() {
       <h1>Knight&rsquo;s Puzzle</h1>
 
       {view === "catalog" ? (
-        <CatalogView onPick={handlePick} onRandom={handleRandom} />
+        <CatalogView
+          onPick={handlePick}
+          onRandom={handleRandom}
+          solved={solved}
+        />
       ) : (
         <>
           <div className="play-head">
