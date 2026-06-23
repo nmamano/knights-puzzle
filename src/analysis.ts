@@ -8,7 +8,8 @@
 // many ways a player could diverge from the shown solution. It is NOT a claim
 // about global solution uniqueness or whether other perfect paths exist.
 
-import { legalMoves, type Puzzle } from "./engine";
+import { legalMoves, type Cell, type Puzzle } from "./engine";
+import type { GameState } from "./game";
 
 /**
  * Per-move apparent-choice counts along the witness path.
@@ -49,4 +50,34 @@ export function difficultyScore(puzzle: Puzzle): number {
     if (count >= 2) product *= count;
   }
   return product;
+}
+
+/**
+ * A witness-only hint for the current game (no solver):
+ * - `won`     — the puzzle is finished.
+ * - `prefix`  — the visited squares are a prefix of the witness path, so the
+ *               correct next move is `nextCell` (the next witness cell, which is
+ *               always a currently-legal move).
+ * - `off_path`— the player has diverged from the WITNESS path. This does NOT
+ *               claim the move is wrong in every possible solution — only that,
+ *               without a solver, we can't point the way along the generated
+ *               witness. The UI should phrase it that way.
+ */
+export type Hint =
+  | { status: "won" }
+  | { status: "prefix"; nextCell: Cell }
+  | { status: "off_path" };
+
+export function hint(state: GameState): Hint {
+  if (state.won) return { status: "won" };
+  const { path } = state.puzzle;
+  const visited = state.visited;
+  const onPrefix =
+    visited.length < path.length &&
+    visited.every((c, i) => c.r === path[i].r && c.c === path[i].c);
+  if (onPrefix) {
+    const next = path[visited.length];
+    return { status: "prefix", nextCell: { r: next.r, c: next.c } };
+  }
+  return { status: "off_path" };
 }

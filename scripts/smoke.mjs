@@ -133,6 +133,72 @@ try {
     { timeout: 5000 },
   );
 
+  // Hint: on the witness prefix it points at the correct next cell; after a
+  // wrong (off-witness) but legal move it reports off_path; Undo restores it.
+  await page.click('[data-puzzle="5"]');
+  await page.waitForFunction(
+    () => {
+      const s = window.__KP__;
+      return s && s.view === "play" && s.puzzleNumber === 5;
+    },
+    { timeout: 8000 },
+  );
+  const hStart = await page.evaluate(() => window.__KP__);
+  if (!hStart.hint || hStart.hint.status !== "prefix") {
+    throw new Error(
+      `expected a prefix hint at the start, got ${hStart.hint && hStart.hint.status}`,
+    );
+  }
+  if (
+    hStart.hint.nextCell.r !== hStart.solution[1].r ||
+    hStart.hint.nextCell.c !== hStart.solution[1].c
+  ) {
+    throw new Error("prefix hint did not point at the next witness cell");
+  }
+  // The Hint button reveals it (visual state on the surface).
+  await page.getByRole("button", { name: "Hint", exact: true }).click();
+  await page.waitForFunction(
+    () => window.__KP__ && window.__KP__.hintShown === true,
+    { timeout: 5000 },
+  );
+  // Make a wrong (off-witness) but legal move; the hint must flip to off_path.
+  const wrong = hStart.legalMoves.find(
+    (m) => m.r !== hStart.solution[1].r || m.c !== hStart.solution[1].c,
+  );
+  if (!wrong) throw new Error("puzzle #5 should branch at the start");
+  await page.click(`[data-cell="${wrong.r}-${wrong.c}"]`);
+  await page.waitForFunction(
+    (t) => {
+      const s = window.__KP__;
+      return (
+        s &&
+        s.knight.r === t.r &&
+        s.knight.c === t.c &&
+        s.hint &&
+        s.hint.status === "off_path"
+      );
+    },
+    wrong,
+    { timeout: 5000 },
+  );
+  // Undo restores the prefix hint.
+  await page.getByRole("button", { name: "Undo" }).click();
+  await page.waitForFunction(
+    () => {
+      const s = window.__KP__;
+      return s && s.visitedCount === 1 && s.hint && s.hint.status === "prefix";
+    },
+    { timeout: 5000 },
+  );
+  await page.getByRole("button", { name: /all puzzles/i }).click();
+  await page.waitForFunction(
+    () =>
+      window.__KP__ &&
+      window.__KP__.view === "catalog" &&
+      window.__KP__.solvedCount === 0,
+    { timeout: 5000 },
+  );
+
   // Enter catalog puzzle #1 (the easiest) and assert the play view loaded it.
   await page.click('[data-puzzle="1"]');
   await page.waitForFunction(

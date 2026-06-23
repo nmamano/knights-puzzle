@@ -11,7 +11,7 @@ import {
   type GameState,
 } from "./game";
 import { maxSteps, MAX_N, MIN_N, MIN_STEPS } from "./difficulty";
-import { difficultyScore } from "./analysis";
+import { difficultyScore, hint } from "./analysis";
 import { CATALOG_SIZE, getCatalog, type CatalogPuzzle } from "./catalog";
 import CatalogView from "./CatalogView";
 import {
@@ -108,6 +108,8 @@ export default function App() {
   // handler, so playback NEVER marks the puzzle solved.
   const [solutionShown, setSolutionShown] = useState(false);
   const [solving, setSolving] = useState(false);
+  // Whether the player has asked for a hint on the current position.
+  const [hintShown, setHintShown] = useState(false);
   const playTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const clearPlayback = useCallback(() => {
     for (const id of playTimers.current) clearTimeout(id);
@@ -177,6 +179,9 @@ export default function App() {
   const totalCells = game.puzzle.path.length;
   // Witness-path branchiness (pure, no solver) — see src/analysis.ts.
   const diffScore = useMemo(() => difficultyScore(game.puzzle), [game.puzzle]);
+  // The witness-only hint for the current position (always computed for the
+  // evidence surface; only DISPLAYED when the player asks + not previewing).
+  const currentHint = useMemo(() => hint(game), [game]);
   const canUndo = game.visited.length > 1;
   const scoreVal = score(game);
   const perfect = isPerfect(game);
@@ -227,6 +232,8 @@ export default function App() {
       perfectCount: perfectCount(solved),
       solutionShown,
       solving,
+      hint: currentHint,
+      hintShown,
     };
   }, [
     view,
@@ -242,6 +249,8 @@ export default function App() {
     solved,
     solutionShown,
     solving,
+    currentHint,
+    hintShown,
   ]);
 
   // Start a game from a source (catalog or random) and switch to the play view.
@@ -250,6 +259,7 @@ export default function App() {
       clearPlayback();
       setSolutionShown(false);
       setSolving(false);
+      setHintShown(false);
       setSource(s);
       setGame(newGame(s.n, s.steps, s.seed));
       setGen((g) => g + 1);
@@ -270,6 +280,7 @@ export default function App() {
     clearPlayback();
     setSolutionShown(false);
     setSolving(false);
+    setHintShown(false);
     setView("catalog");
   }, [clearPlayback]);
 
@@ -279,11 +290,17 @@ export default function App() {
     clearPlayback();
     setSolutionShown(false);
     setSolving(false);
+    setHintShown(false);
     setGame((g) => resetGame(g));
     setGen((g) => g + 1);
   }, [clearPlayback]);
   // Undo keeps the same gen, so the piece slides back one step.
-  const handleUndo = useCallback(() => setGame((g) => undoMove(g)), []);
+  const handleUndo = useCallback(() => {
+    setHintShown(false);
+    setGame((g) => undoMove(g));
+  }, []);
+  // Reveal the hint for the current position (cleared by any move/undo/etc.).
+  const handleHint = useCallback(() => setHintShown(true), []);
 
   // Reveal the witness solution: reset to the start, then step the knight along
   // puzzle.path on a timer (the existing slide animates each hop). The board is
@@ -292,6 +309,7 @@ export default function App() {
   const handleViewSolution = useCallback(() => {
     clearPlayback();
     const path = game.puzzle.path;
+    setHintShown(false);
     setSolutionShown(true);
     setSolving(true);
     setGame((g) => resetGame(g));
@@ -317,6 +335,7 @@ export default function App() {
       if (solutionShown) return; // board inert while previewing the solution
       const next = tryMove(game, cell);
       if (next === game) return; // illegal / no-op
+      setHintShown(false); // a move answers the current hint
       setGame(next);
       if (next.won && source.id) {
         setSolved((cur) =>
@@ -334,6 +353,13 @@ export default function App() {
         : new Set(legal.map((m) => `${m.r}-${m.c}`)),
     [legal, solutionShown],
   );
+
+  // The hint is only DISPLAYED when asked and not while previewing a solution.
+  const activeHint = hintShown && !solutionShown ? currentHint : null;
+  const hintKey =
+    activeHint?.status === "prefix"
+      ? `${activeHint.nextCell.r}-${activeHint.nextCell.c}`
+      : null;
   const visitedKeys = useMemo(
     () => new Set(game.visited.map((v) => `${v.r}-${v.c}`)),
     [game.visited],
@@ -412,6 +438,7 @@ export default function App() {
                     isVisited ? "visited" : "",
                     isLegal ? "legal" : "",
                     isEnd ? "goal" : "",
+                    k === hintKey ? "hinted" : "",
                   ]
                     .filter(Boolean)
                     .join(" ");
@@ -507,6 +534,17 @@ export default function App() {
             </p>
           )}
 
+          {activeHint && (
+            <p
+              className={`hint-note${activeHint.status === "off_path" ? " off" : ""}`}
+              role="status"
+            >
+              {activeHint.status === "prefix"
+                ? "Hint: hop to the glowing square."
+                : "You’ve strayed from the solution this puzzle was built around — Undo or Retry to get back on it."}
+            </p>
+          )}
+
           {stuck && (
             <p className="stuck-note" role="status">
               No moves left — <strong>Undo</strong> a step,{" "}
@@ -524,6 +562,14 @@ export default function App() {
                 New random puzzle
               </button>
             )}
+            <button
+              type="button"
+              className="btn"
+              onClick={handleHint}
+              disabled={won || solutionShown}
+            >
+              Hint
+            </button>
             <button
               type="button"
               className="btn"

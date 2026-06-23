@@ -1,6 +1,7 @@
 import { test, expect, describe } from "bun:test";
-import { branchingProfile, difficultyScore } from "../src/analysis";
+import { branchingProfile, difficultyScore, hint } from "../src/analysis";
 import { generatePuzzle, type Cell, type Puzzle } from "../src/engine";
+import { newGame, tryMove, type GameState } from "../src/game";
 
 // Build a puzzle from an explicit witness `path` plus optional `decoys` — extra
 // playable cells that are NOT on the path but exist to inflate a step's legal
@@ -131,5 +132,59 @@ describe("difficultyScore", () => {
     difficultyScore(p);
     expect(p.path).toEqual(pathSnapshot);
     expect(p.available).toEqual(availSnapshot);
+  });
+});
+
+describe("hint", () => {
+  test("a finished game → status won", () => {
+    let g = newGame(6, 12, 7);
+    for (let i = 1; i < g.puzzle.path.length; i++) {
+      g = tryMove(g, g.puzzle.path[i]);
+    }
+    expect(g.won).toBe(true);
+    expect(hint(g).status).toBe("won");
+  });
+
+  test("at the start, the prefix hint is the next witness cell", () => {
+    const g = newGame(6, 12, 7);
+    const h = hint(g);
+    expect(h.status).toBe("prefix");
+    if (h.status === "prefix") expect(h.nextCell).toEqual(g.puzzle.path[1]);
+  });
+
+  test("following the witness keeps pointing at the next cell", () => {
+    let g = newGame(6, 12, 7);
+    g = tryMove(g, g.puzzle.path[1]);
+    const h = hint(g);
+    expect(h.status).toBe("prefix");
+    if (h.status === "prefix") expect(h.nextCell).toEqual(g.puzzle.path[2]);
+  });
+
+  test("a legal move OFF the witness path → off_path (start still prefix)", () => {
+    // Start (0,0) branches to B=(1,2) [the witness next] OR D=(2,1) [a decoy].
+    const puzzle = buildPuzzle(
+      4,
+      [
+        { r: 0, c: 0 },
+        { r: 1, c: 2 },
+        { r: 3, c: 3 },
+      ],
+      [{ r: 2, c: 1 }],
+    );
+    const start: GameState = {
+      puzzle,
+      knight: { r: 0, c: 0 },
+      visited: [{ r: 0, c: 0 }],
+      won: false,
+    };
+    const atStart = hint(start);
+    expect(atStart.status).toBe("prefix");
+    if (atStart.status === "prefix") {
+      expect(atStart.nextCell).toEqual({ r: 1, c: 2 });
+    }
+    // Step onto the decoy D=(2,1): legal, but off the witness → off_path.
+    const off = tryMove(start, { r: 2, c: 1 });
+    expect(off.visited).toHaveLength(2);
+    expect(hint(off).status).toBe("off_path");
   });
 });

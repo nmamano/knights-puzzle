@@ -645,9 +645,11 @@ Same gate stack (`bun run ci && bun run smoke`). `window.__KP__` grows new field
       ✅ committed (reviewer-approved). Deterministic completion signal:
       `solutionShown && !solving && knight==end && visitedCount==total`; never
       marks the puzzle solved.
-- [ ] **6f — Hint button (play view).** `hint(state)`: on-witness-prefix →
+- [x] **6f — Hint button (play view).** `hint(state)`: on-witness-prefix →
       highlight the next path cell; deviated → "off the optimal path" message;
       won → already solved. Pure + unit-tested; `__KP__.hint`.
+      ✅ committed (reviewer-approved). Hint cleared/disabled while solution is
+      shown; off-path copy says "strayed from the witness", not "wrong always".
 
 > Ordering note: pure foundations (6a, 6b) + the restructure (6c, 6d) come first
 > so View-Solution/Hint (6e, 6f) are built ONCE, in the final play view.
@@ -811,8 +813,8 @@ round(0.7·maxSteps(n)), 26)]` — the 26-cap keeps the hardest puzzles playable
     every `STEP_MS` (240ms > SLIDE_MS so each slide settles). Timers tracked in a
     ref + `clearPlayback()`; cleared on unmount and on Retry/Back/new-puzzle.
   - `solutionShown` (preview active → board `.inert` + click handler early-return
-    + legal hints hidden + win panel suppressed + a "solution" note) and
-    `solving` (timers still running). Both on `__KP__`.
+    - legal hints hidden + win panel suppressed + a "solution" note) and
+      `solving` (timers still running). Both on `__KP__`.
   - Deterministic smoke signal (reviewer ask — not a racy flag): wait for
     `solutionShown && !solving && knight==end && visitedCount==totalCells`.
   - Retry exits the preview to a fresh playable board; View-solution button
@@ -823,3 +825,29 @@ round(0.7·maxSteps(n)), 26)]` — the 26-cap keeps the hardest puzzles playable
   green.
 - **Locked:** witness-only (no solver); viewing never marks solved; board inert
   while shown.
+
+## SLICE-6f PICKUP — Hint (authored after 6e)
+
+- **Baseline commit:** `b8060b7` (6e View Solution).
+- **What 6e taught (fold in):** reviewer wants hint display/state clear or
+  disabled while `solutionShown` so it can't conflict with playback.
+- **Goal:** a "Hint" button: the correct next move on the witness prefix, or a
+  clear "you've strayed" message once off the witness — no solver.
+- **Decisions made:**
+  - Pure `hint(state): Hint` in `src/analysis.ts` (witness-only):
+    `won` | `prefix` (+ `nextCell`) | `off_path`. `prefix` iff visited is a
+    prefix of `puzzle.path` → next = `path[visited.length]` (always legal).
+  - off_path copy is honest: "strayed from the solution this puzzle was built
+    around" — NOT "wrong in all solutions" (we have no solver). Reviewer ask.
+  - `__KP__.hint` is ALWAYS computed (structured: status + nextCell) so the
+    smoke can judge the logic via the surface; `__KP__.hintShown` = the UI
+    toggle. Hint cleared by any move/undo/retry/back/new-puzzle/view-solution and
+    NOT shown while `solutionShown`; the Hint button is disabled when won or
+    while the solution is shown.
+  - Display: pulse-ring the hinted cell (prefix) or a note (off_path).
+- **Acceptance (met):** 4 hint unit tests (won/prefix/follow-prefix/off_path);
+  smoke uses #5 (branches at start) — asserts prefix hint == solution[1], clicks
+  Hint (hintShown true), makes a wrong legal move → off_path, Undo → prefix
+  again. `bun run ci && bun run smoke` green.
+- **Locked:** witness-only (no solver); honest off-path wording; cleared/disabled
+  during solution preview.
