@@ -3,13 +3,13 @@
 **Re-read this file at the start of every iteration.** [why: conversations
 compact, this file does not. It is the loop's memory.]
 
-> 🔄 **BATCH 6 IN PROGRESS (2026-06-23, Game Maker).** New asks from Nil: a
-> **View Solution** button, a **Hint** button, difficulty **SCORING** (branching
-> product), a **100-puzzle difficulty-sorted landing page**, **remove** the
-> easy/med/hard/custom menu (keep "Generate random puzzle" = old custom), and
-> client-side **solved tracking** for the 100. Slice plan + pickups are at the
-> BOTTOM of this file ("BATCH 6"). Plan: deliver ALL → Game Reviewer reviews
-> designs + code → show Nil on a local port, THEN ask anything.
+> ✅ **BATCH 6 COMPLETE (2026-06-23, Game Maker).** Shipped 6a–6f, all
+> reviewer-approved (plan-gate + diff-gate each): View Solution, Hint, difficulty
+> SCORING (branching product), the 100-puzzle difficulty-sorted landing page,
+> removed the easy/med/hard/custom menu (kept "Generate random puzzle"), and
+> localStorage solved tracking. Commits `790da01`→`8f8ff65`. Running locally for
+> Nil on port 5280. NOT pushed/deployed (Nil-gated). Slice→commit table + the
+> parked "solved=won" confirmation are at the BOTTOM of this file ("BATCH 6").
 >
 > ✅ **Batch 5 COMPLETE (2026-06-22).** All slices 5a–5g shipped + reviewer-approved.
 > Code: github.com/nmamano/knights-puzzle. Live on Vercel:
@@ -851,3 +851,34 @@ round(0.7·maxSteps(n)), 26)]` — the 26-cap keeps the hardest puzzles playable
   again. `bun run ci && bun run smoke` green.
 - **Locked:** witness-only (no solver); honest off-path wording; cleared/disabled
   during solution preview.
+
+## BATCH 6 — completion summary (2026-06-23)
+
+All six slices committed, every gate green (`bun run ci && bun run smoke`), and
+each slice plan-gated + diff-gated by Game Reviewer.
+
+| Slice | Commit | What landed |
+|---|---|---|
+| plan | `790da01` | batch-6 standing orders + 6a handoff |
+| 6a | `d00a152` | difficulty SCORE = product of witness branch-factors (pure, no solver) |
+| 6b | `f0e8422` | deterministic 100-puzzle catalog, ranked + numbered 1..100 |
+| 6c | `a4f497d` | catalog landing page + routing; removed the difficulty menu; "Generate random puzzle" |
+| 6d | `f2027e7` | localStorage solved-tracking (✓/★, "Solved N/100"); random untracked |
+| 6e | `b8060b7` | View Solution button (witness playback; never credits a solve) |
+| 6f | `8f8ff65` | Hint button (next correct move / honest off-path; witness-only) |
+
+**Running for Nil:** `bun run dev -- --port 5280 --host` (harness-tracked bg).
+**Not done (Nil-gated):** push / Vercel deploy / DNS — unchanged from batch 5.
+
+**parked-for-Nil (awaiting confirmation, default already shipped):**
+- "Solved" = reached the goal (won); a perfect run (all squares) earns a ★. If
+  Nil instead wants "solved" to REQUIRE perfect, it's a small change in
+  `recordSolved` + the tile/`__KP__` count (and a CATALOG_VERSION bump is NOT
+  needed; the stored shape is unchanged).
+
+**Deferred (non-blocking, reviewer-noted):**
+- `loadSolved` accepts any object-shaped record; could normalize `perfect ⇒
+  solved` and count only current-catalog ids so hand-edited localStorage can't
+  produce odd totals.
+- Optional: Prev/Next navigation between catalog puzzles; a compact difficulty
+  display for very large scores; "Next puzzle" after a catalog win.
