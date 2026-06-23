@@ -286,6 +286,22 @@ try {
     throw new Error(`expected perfectCount 1, got ${solved.perfectCount}`);
   }
 
+  // "Next puzzle →" loads #N+1 (here #2) as a fresh game.
+  await page.getByRole("button", { name: /next puzzle/i }).click();
+  await page.waitForFunction(
+    () => {
+      const s = window.__KP__;
+      return (
+        s &&
+        s.view === "play" &&
+        s.puzzleNumber === 2 &&
+        s.visitedCount === 1 &&
+        !s.won
+      );
+    },
+    { timeout: 8000 },
+  );
+
   // Navigate back to the catalog; the solved count carries over.
   await page.getByRole("button", { name: /all puzzles/i }).click();
   await page.waitForFunction(

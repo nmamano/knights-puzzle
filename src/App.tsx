@@ -12,7 +12,12 @@ import {
 } from "./game";
 import { customSettings, type Settings } from "./difficulty";
 import { difficultyScore, hint } from "./analysis";
-import { CATALOG_SIZE, getCatalog, type CatalogPuzzle } from "./catalog";
+import {
+  CATALOG_SIZE,
+  catalogByNumber,
+  getCatalog,
+  type CatalogPuzzle,
+} from "./catalog";
 import CatalogView from "./CatalogView";
 import {
   defaultStorage,
@@ -303,6 +308,14 @@ export default function App() {
     setView("catalog");
   }, [clearPlayback]);
 
+  // Jump to the next catalog puzzle (#N+1) as a fresh game. Only meaningful for a
+  // catalog puzzle that isn't the last; startSource clears hint/solution/playback.
+  const handleNext = useCallback(() => {
+    if (source.number == null) return;
+    const next = catalogByNumber(source.number + 1);
+    if (next) startSource(sourceFromCatalog(next));
+  }, [source.number, startSource]);
+
   // Retry snaps the piece back to start (re-key), so it does NOT slide. Also
   // exits a solution preview back to normal play.
   const handleRetry = useCallback(() => {
@@ -381,6 +394,24 @@ export default function App() {
     activeHint?.status === "prefix"
       ? `${activeHint.nextCell.r}-${activeHint.nextCell.c}`
       : null;
+
+  // ONE transient message at a time, rendered in a fixed-height slot so the
+  // controls never jump. Priority: solution preview > hint > stuck.
+  let playMsg = "";
+  let playMsgWarn = false;
+  if (solutionShown) {
+    playMsg = solving
+      ? "Playing the solution…"
+      : "Click Retry to play it yourself.";
+  } else if (activeHint?.status === "prefix") {
+    playMsg = "Hint: hop to the glowing square.";
+  } else if (activeHint?.status === "off_path") {
+    playMsg = "You’ve strayed from the planned solution. Undo or Retry.";
+    playMsgWarn = true;
+  } else if (stuck) {
+    playMsg = "No moves left. Undo, Retry, or pick a different puzzle.";
+    playMsgWarn = true;
+  }
   const visitedKeys = useMemo(
     () => new Set(game.visited.map((v) => `${v.r}-${v.c}`)),
     [game.visited],
@@ -531,50 +562,15 @@ export default function App() {
             </div>
           </div>
 
-          {won && !solutionShown && (
-            <div className="win-panel" role="status">
-              <span className="win-text">
-                {perfect
-                  ? `Perfect! ${scoreVal}/${totalCells} 🎉`
-                  : `Reached the goal! ${scoreVal}/${totalCells}`}
-              </span>
-              {!perfect && (
-                <button
-                  type="button"
-                  className="btn primary"
-                  onClick={handleRetry}
-                >
-                  Retry for a better score
-                </button>
-              )}
-            </div>
-          )}
-
-          {solutionShown && (
-            <p className="solution-note" role="status">
-              {solving
-                ? "Playing the solution…"
-                : "That’s the full solution — Retry to play it yourself."}
-            </p>
-          )}
-
-          {activeHint && (
-            <p
-              className={`hint-note${activeHint.status === "off_path" ? " off" : ""}`}
-              role="status"
-            >
-              {activeHint.status === "prefix"
-                ? "Hint: hop to the glowing square."
-                : "You’ve strayed from the solution this puzzle was built around — Undo or Retry to get back on it."}
-            </p>
-          )}
-
-          {stuck && (
-            <p className="stuck-note" role="status">
-              No moves left — <strong>Undo</strong> a step,{" "}
-              <strong>Retry</strong> this board, or pick another puzzle.
-            </p>
-          )}
+          {/* One fixed-height slot for transient notes — reserves space so the
+              controls below never jump when a message appears. */}
+          <p
+            className={`play-msg${playMsgWarn ? " warn" : ""}`}
+            role="status"
+            aria-live="polite"
+          >
+            {playMsg}
+          </p>
 
           <div className="controls">
             {isRandom && (
@@ -615,10 +611,35 @@ export default function App() {
             </button>
           </div>
 
+          {/* Win panel sits BELOW the controls (a terminal element) so winning
+              never shifts the control row. */}
+          {won && !solutionShown && (
+            <div className="win-panel" role="status">
+              <span className="win-text">
+                {perfect
+                  ? `Perfect! ${scoreVal}/${totalCells} 🎉`
+                  : `Reached the goal! ${scoreVal}/${totalCells}`}
+              </span>
+              {!perfect && (
+                <button type="button" className="btn" onClick={handleRetry}>
+                  Retry for a better score
+                </button>
+              )}
+              {source.number != null && source.number < CATALOG_SIZE && (
+                <button
+                  type="button"
+                  className="btn primary"
+                  onClick={handleNext}
+                >
+                  Next puzzle →
+                </button>
+              )}
+            </div>
+          )}
+
           <p className="hint">
             Click a highlighted square to move the knight. It can only land on a
-            square it hasn&rsquo;t visited yet. Stuck? <strong>Undo</strong> a
-            step, <strong>Retry</strong> the board, or go back to the list.
+            square it hasn&rsquo;t visited yet.
           </p>
         </>
       )}

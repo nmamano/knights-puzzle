@@ -922,10 +922,13 @@ Reviewer.
       is a clean reset. Pure storage tests updated.
       ✅ gates green; awaiting diff-gate. `isRecordPerfect` helper; loadSolved
       clamps bestScore≤total; verified visually (★ + score strips render).
-- [ ] **7d — UX polish (UI/CSS).** "Next puzzle →" on a catalog win (loads #N+1;
+- [x] **7d — UX polish (UI/CSS).** "Next puzzle →" on a catalog win (loads #N+1;
       hidden on #100); reserve a fixed-height message slot so the controls don't
-      jump when hint/solution/stuck/win notes appear (Nil: Hint + stuck both push
+      jump when hint/solution/stuck notes appear (Nil: Hint + stuck both push
       buttons down); make the hint glow a bit MORE obvious; remaining copy edits.
+      ✅ gates green; awaiting diff-gate. Verified: controls shift 0.00px on Hint;
+      single `.play-msg` slot (one message by priority); stronger `.cell.hinted`
+      glow; Next button in the win panel; all copy edits applied.
 
 ## Key interpretation (flagged to Nil)
 
@@ -953,3 +956,36 @@ wants the 99 SPREAD across the full range, that's a one-line selection change.
 - Build cost: catalog v2 harvests distinct difficulties from a deterministic pool
   (~6–8k generatePuzzle calls) at first getCatalog(); memoized. Measure build
   time; keep it well under ~300ms or precompute.
+
+---
+
+# BATCH 8 — Nil follow-up (2026-06-23, queued; start AFTER 7d commits)
+
+Same gated loop. Reviewer = Game Reviewer
+(POST localhost:4000/api/agents/agent-1780864878869-eq7t/messages).
+
+## Asks → slices
+
+- [ ] **8a — Catalog = 99 total, boss is #99 (clarification of 7a).** Nil: "total
+      number of puzzles should be 99, with the one that was #100 as new #99." So
+      `CATALOG_SIZE = 99`; #1–#98 = the 98 SMALLEST distinct difficulties; #99 =
+      the pinned boss (`7-26-2045617612`). Bump `CATALOG_VERSION` → 3 (re-scopes
+      storage). Update catalog tests (#98 < #99, #99 pinned, 99 unique, etc.). The
+      Next-button bound already uses `number < CATALOG_SIZE`, so Next hides on #99.
+- [ ] **8b — Random-puzzle page (move sliders off the landing).** Nil: "Move the
+      random puzzle sliders to inside the random puzzle 'page', not the landing
+      page." Plan: landing keeps a "Random puzzle" button (no sliders); clicking
+      it opens a dedicated random-config view (3rd view) with the board-size +
+      path-length sliders + a "Generate" button + back-to-list. `__KP__.view`
+      gains "random". (CONFIRM with Nil: dedicated config page vs. knobs in the
+      random play view — proceeding with the config page.)
+
+## Vercel usage tracking (Nil Q2) — answer
+
+- The knight puzzle is a SEPARATE Vercel project from nilmamano.com, so
+  nilmamano.com's analytics do NOT cover it. package.json has no
+  `@vercel/analytics` → currently NOT tracked.
+- To enable: (a) toggle Web Analytics on the knights-puzzle project in the Vercel
+  dashboard (Nil's account), and (b) add `@vercel/analytics` + `<Analytics/>` to
+  the app (a small code change I can do — no deploy). Nil-gated; offer as a slice
+  when we next deploy.
