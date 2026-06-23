@@ -3,10 +3,16 @@
 **Re-read this file at the start of every iteration.** [why: conversations
 compact, this file does not. It is the loop's memory.]
 
-> 🔄 **BATCH 7 IN PROGRESS (2026-06-23, Game Maker).** Nil's polish feedback
-> after batch 6: catalog v2 (unique difficulties + pinned #100), random-puzzle
-> knobs, "Next puzzle" button, no-shift message layout, copy edits. Slice plan at
-> the BOTTOM ("BATCH 7"). Same gated loop; reviewer = Game Reviewer.
+> 🔄 **BATCH 8 IN PROGRESS (2026-06-23, Game Maker).** Nil follow-up: catalog →
+> 99 total (boss becomes #99), move the random sliders to a dedicated random
+> page. Plan + Vercel-analytics answer at the BOTTOM ("BATCH 8"). Reviewer = Game
+> Reviewer.
+>
+> ✅ **BATCH 7 COMPLETE (2026-06-23, Game Maker).** Shipped 7a–7d, all reviewer-
+> approved: catalog v2 (unique difficulties + pinned #100), random-puzzle knobs,
+> best-score tiles (★ / score), "Next puzzle" button, no-shift layout, stronger
+> hint glow, copy edits. Commits `4dd9913`→`be59e0f`. Running on 5280. NOT
+> pushed/deployed (Nil-gated).
 >
 > ✅ **BATCH 6 COMPLETE (2026-06-23, Game Maker).** Shipped 6a–6f, all
 > reviewer-approved (plan-gate + diff-gate each): View Solution, Hint, difficulty
