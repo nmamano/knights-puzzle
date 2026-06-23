@@ -629,9 +629,11 @@ Same gate stack (`bun run ci && bun run smoke`). `window.__KP__` grows new field
       Unit-tested (deterministic, exactly 100, sorted, each regenerates valid).
       ✅ committed (reviewer-approved). Tuned: n∈[4..8], steps capped at 26 →
       scores span 1..~2.76M, 50 distinct, all boards represented.
-- [ ] **6c — Landing page + routing.** Catalog view (grid of 100 sorted tiles) ↔
+- [x] **6c — Landing page + routing.** Catalog view (grid of 100 sorted tiles) ↔
       play view; REMOVE the easy/med/hard/custom menu; add "Generate random
       puzzle" (= old custom, untracked) at the bottom. `__KP__.view`/`puzzleNumber`.
+      ✅ committed (reviewer-approved). Component is `src/CatalogView.tsx`
+      (renamed off `Catalog.tsx` — resolver collided with `catalog.ts`).
 - [ ] **6d — Solved tracking (localStorage).** Persist solved catalog puzzles
       (won; star if perfect); show on tiles; random runs untracked. Pure storage
       module (injectable Storage) unit-tested; smoke confirms persistence.
@@ -722,7 +724,7 @@ Fold these into the relevant slices:
   - `CATALOG_MASTER_SEED = 0x6b6e6967`, `CATALOG_SIZE = 100`,
     `CATALOG_VERSION = 1` (bump if gen/seed/id scheme change — scopes 6d storage).
   - Draw `n ∈ [4..8]`; `steps ∈ [max(MIN_STEPS, n+1) .. min(maxSteps(n),
-    round(0.7·maxSteps(n)), 26)]` — the 26-cap keeps the hardest puzzles playable
+round(0.7·maxSteps(n)), 26)]` — the 26-cap keeps the hardest puzzles playable
     by hand and scores in the low millions, not 10¹¹.
   - Stable `id = "${n}-${steps}-${seed}"` regenerates the exact puzzle.
   - Store ACTUAL `cells = puzzle.path.length` (a walk can dead-end < steps+1).
@@ -735,3 +737,29 @@ Fold these into the relevant slices:
   matching score + cells; multi-board + many-distinct-score spread; all finite.
   11 unit tests. `bun run ci && bun run smoke` green.
 - **Locked:** deterministic + stable catalog; no solver; pure.
+
+## SLICE-6c PICKUP — Landing page + routing (authored after 6b)
+
+- **Baseline commit:** `f0e8422` (6b catalog).
+- **What 6b taught (fold in):** `getCatalog()` is a memoized SHARED array → map
+  it read-only in the UI. `difficulty.ts` constants feed the catalog → do NOT
+  change them without a CATALOG_VERSION bump (kept them untouched here).
+- **Goal:** catalog landing ↔ play routing; remove the easy/med/hard/custom
+  menu; "Generate random puzzle" (= old custom, untracked) at the bottom.
+- **Decisions made:**
+  - New `src/CatalogView.tsx` (renamed from `Catalog.tsx` — bun's resolver
+    collided the lowercase data module `catalog.ts` with `Catalog.tsx`).
+  - App is the router: `view` ∈ {catalog, play}; a `Source` ({n, steps, seed,
+    number, id}) describes the active game (number/id null ⇒ random ⇒ untracked).
+  - Catalog tiles carry `data-puzzle="N"`; back button "← All puzzles".
+  - Random puzzle: n ∈ [4..9], steps capped 30, random seed.
+  - Removed the difficulty chips + custom sliders + their now-dead CSS; fixed the
+    `.chip:focus-visible` selector. `difficulty.ts` UNCHANGED (catalog dep).
+  - `__KP__` gains `view`, `catalogSize`, `catalog` summary, `puzzleNumber`,
+    `puzzleId`. Animation/trail logic preserved verbatim.
+- **Acceptance criteria (met):** lands on the catalog (100 tiles), pick #N →
+  plays it, back returns; menu gone; random button works + untracked. Smoke
+  rewritten: navigate catalog→play, undo round-trip, witness-solve (perfect),
+  back, then random (puzzleNumber null). `bun run ci && bun run smoke` green.
+- **Locked:** catalog is the landing; no difficulty menu; random untracked; no
+  rule changes; no solver; client-side only.

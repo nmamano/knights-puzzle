@@ -65,60 +65,71 @@ h1 {
   margin: 0 0 1rem;
 }
 
-/* Difficulty selector — keeps our lavender identity. */
-.difficulty {
-  display: inline-flex;
-  gap: 4px;
-  padding: 4px;
-  background: #ece6fb;
-  border-radius: 999px;
-  margin: 0 auto 0.75rem;
-  flex-wrap: wrap;
-  justify-content: center;
+/* Landing page — the 100-puzzle catalog (numbered tiles, easiest first). */
+.catalog-grid {
+  list-style: none;
+  margin: 1rem auto 1.5rem;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
+  gap: 8px;
+  max-width: min(92vw, 560px);
 }
-
-.chip {
-  font-family: var(--body);
-  border: none;
-  background: transparent;
-  color: #5a5375;
-  font-size: 0.95rem;
-  font-weight: 700;
-  padding: 0.45rem 1rem;
-  border-radius: 999px;
+.puzzle-tile {
+  width: 100%;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #c9bdf4;
+  border-radius: 12px;
+  background: #fff;
+  color: #4a4366;
   cursor: pointer;
   transition:
+    transform 0.06s ease,
     background 0.1s ease,
-    color 0.1s ease;
+    border-color 0.1s ease;
 }
-.chip:hover {
-  background: #e0d8f7;
+.puzzle-tile:hover {
+  background: #f3effd;
+  border-color: var(--accent);
 }
-.chip.active {
-  background: var(--accent);
-  color: #fff;
+.puzzle-tile:active {
+  transform: scale(0.94);
+}
+.puzzle-tile:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+.tile-number {
+  font-family: var(--display);
+  font-size: 1.35rem;
+  line-height: 1;
+}
+.catalog-foot {
+  color: #6b6580;
+  font-size: 0.85rem;
+  margin: 0.6rem auto 0;
 }
 
-.custom-controls {
+/* Play view header — back to the list + which puzzle this is. */
+.play-head {
   display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-  max-width: 22rem;
-  margin: 0 auto 0.75rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin: 0.25rem 0 0.5rem;
 }
-.slider {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
+.btn.back {
+  padding: 0.4rem 0.9rem;
   font-size: 0.9rem;
-  color: #5a5375;
 }
-.slider strong {
-  color: var(--ink);
-}
-.slider input[type="range"] {
-  width: 100%;
-  accent-color: var(--accent);
+.puzzle-label {
+  font-family: var(--display);
+  font-size: 1.3rem;
+  color: #3a3357;
 }
 
 .status {
@@ -375,7 +386,6 @@ h1 {
 }
 
 /* Accessibility — obvious keyboard focus, keeping our lavender identity. */
-.chip:focus-visible,
 .btn:focus-visible {
   outline: 3px solid var(--accent);
   outline-offset: 2px;

@@ -1,11 +1,13 @@
 // Real-browser smoke gate — SOLVE-AND-JUDGE.
 //
-// Drives the REAL game in headless system Chrome (channel: "chrome"): it reads
-// the witness solution from the evidence surface (window.__KP__.solution),
-// then SOLVES the puzzle by real clicks on [data-cell="r-c"] buttons, polling
-// window.__KP__.knight after each click (click-and-verify — clicks race
-// re-renders). The verdict comes from window.__KP__ (won / counts), never from
-// pixels. Fails on any page error.
+// Drives the REAL game in headless system Chrome (channel: "chrome"): it opens
+// the catalog landing page, enters a puzzle, reads the witness solution from the
+// evidence surface (window.__KP__.solution), then SOLVES by real clicks on
+// [data-cell="r-c"] buttons, polling window.__KP__ after each click
+// (click-and-verify — clicks race re-renders). Also exercises navigation back to
+// the catalog and the "Generate random puzzle" path. The verdict comes from
+// window.__KP__ (view / won / counts / puzzleNumber), never from pixels. Fails
+// on any page error.
 //
 // Reserved port: 4317 (strictPort — never clobbers a live dev server).
 import { spawn } from "node:child_process";
@@ -60,26 +62,37 @@ try {
   // about:blank probe (proves the browser channel launches).
   await page.goto("about:blank");
 
-  // Load the real app and wait for the evidence surface.
+  // Load the real app and wait for the evidence surface on the CATALOG view.
   await page.goto(URL, { waitUntil: "domcontentloaded" });
   await page.waitForFunction(
     () => window.__KP__ && window.__KP__.ready === true,
     { timeout: 10000 },
   );
 
-  // Change difficulty through the real UI; assert the board actually grew
-  // (Medium n=6 -> Hard n=8) via the evidence surface, then solve the result.
-  await page.getByRole("button", { name: "Hard" }).click();
+  const landing = await page.evaluate(() => window.__KP__);
+  if (landing.view !== "catalog") {
+    throw new Error(
+      `expected to land on the catalog, got view=${landing.view}`,
+    );
+  }
+  if (landing.catalogSize !== 100 || landing.catalog.length !== 100) {
+    throw new Error(
+      `catalog should have 100 entries, got ${landing.catalogSize}`,
+    );
+  }
+
+  // Enter catalog puzzle #1 (the easiest) and assert the play view loaded it.
+  await page.click('[data-puzzle="1"]');
   await page.waitForFunction(
     () => {
       const s = window.__KP__;
-      return s && s.difficulty && s.difficulty.id === "hard" && s.n === 8;
+      return s && s.view === "play" && s.puzzleNumber === 1;
     },
     { timeout: 8000 },
   );
 
   const startState = await page.evaluate(() => window.__KP__);
-  if (startState.won) throw new Error("game started already won");
+  if (startState.won) throw new Error("puzzle started already won");
   if (!Array.isArray(startState.solution) || startState.solution.length < 2) {
     throw new Error("no witness solution exposed on __KP__");
   }
@@ -132,28 +145,55 @@ try {
     );
   }
 
-  const final = await page.evaluate(() => window.__KP__);
+  const solved = await page.evaluate(() => window.__KP__);
+  if (!solved.won) throw new Error("did not win after following the solution");
+  if (solved.score !== solved.total) {
+    throw new Error(`covered ${solved.score}/${solved.total} squares`);
+  }
+  if (!solved.perfect)
+    throw new Error("expected a perfect solve (won && all covered)");
+
+  // Navigate back to the catalog.
+  await page.getByRole("button", { name: /all puzzles/i }).click();
+  await page.waitForFunction(
+    () => window.__KP__ && window.__KP__.view === "catalog",
+    { timeout: 5000 },
+  );
+
+  // "Generate random puzzle" loads an UNTRACKED random puzzle (puzzleNumber null).
+  await page.getByRole("button", { name: /generate random puzzle/i }).click();
+  await page.waitForFunction(
+    () => {
+      const s = window.__KP__;
+      return s && s.view === "play" && s.puzzleNumber === null;
+    },
+    { timeout: 8000 },
+  );
+  const random = await page.evaluate(() => window.__KP__);
+  if (random.puzzleId !== null) {
+    throw new Error("random puzzle must have a null puzzleId (untracked)");
+  }
+  if (!Array.isArray(random.solution) || random.solution.length < 2) {
+    throw new Error("random puzzle exposed no witness solution");
+  }
+  if (random.won) throw new Error("random puzzle started already won");
+
   if (pageErrors.length) {
     throw new Error("pageerrors: " + pageErrors.join("; "));
   }
-  if (!final.won) throw new Error("did not win after following the solution");
-  if (final.score !== final.total) {
-    throw new Error(`covered ${final.score}/${final.total} squares`);
-  }
-  if (!final.perfect)
-    throw new Error("expected a perfect solve (won && all covered)");
 
   console.log(
     JSON.stringify(
       {
         ok: true,
-        difficulty: final.difficulty,
-        n: final.n,
-        seed: final.seed,
-        score: final.score,
-        total: final.total,
-        perfect: final.perfect,
-        won: final.won,
+        solvedPuzzle: solved.puzzleNumber,
+        n: solved.n,
+        seed: solved.seed,
+        score: solved.score,
+        total: solved.total,
+        perfect: solved.perfect,
+        difficultyScore: solved.difficultyScore,
+        random: { puzzleNumber: random.puzzleNumber, n: random.n },
         chrome: browser.version(),
       },
       null,
