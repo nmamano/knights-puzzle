@@ -3,11 +3,12 @@
 **Re-read this file at the start of every iteration.** [why: conversations
 compact, this file does not. It is the loop's memory.]
 
-> 🔄 **BATCH 8 IN PROGRESS (2026-06-23, Game Maker).** Nil follow-up: catalog →
-> 99 total (boss becomes #99), move the random sliders into the random GAMEPLAY
-> screen (Nil clarified — no 3rd view), and wire up @vercel/analytics (Nil
-> enabled the dashboard toggle). Plan at the BOTTOM ("BATCH 8"). Reviewer = Game
-> Reviewer.
+> ✅ **BATCH 8 COMPLETE (2026-06-23, Game Maker).** Shipped 8a–8c, all reviewer-
+> approved: catalog → 99 puzzles (boss = #99, CATALOG_VERSION 3), random
+> board-size/path-length knobs moved into the random GAMEPLAY screen (live-
+> regenerate), and `@vercel/analytics` wired (PROD-gated; Nil enabled the
+> dashboard). Commits `6240636`→`818eab3`. Running on 5280. NOT pushed/deployed
+> (Nil-gated). Solved-progress reset by the v3 version bump (expected).
 >
 > ✅ **BATCH 7 COMPLETE (2026-06-23, Game Maker).** Shipped 7a–7d, all reviewer-
 > approved: catalog v2 (unique difficulties + pinned #100), random-puzzle knobs,
@@ -1008,3 +1009,17 @@ Same gated loop. Reviewer = Game Reviewer
   alone won't collect data without the `@vercel/analytics` script.
 - Nil enabled Web Analytics on the dashboard → slice 8c adds the package +
   `<Analytics/>`. Inert locally; collects once deployed (deploy stays Nil-gated).
+
+## BATCH 8 — completion summary (2026-06-23)
+
+All three slices committed, gates green, each plan-gated + diff-gated.
+
+| Slice | Commit | What landed |
+|---|---|---|
+| 8a | `6240636` | catalog = 99 (CATALOG_SIZE 99, VERSION 3); #1–#98 unique-difficulty ramp; #99 = pinned boss `7-26-2045617612` |
+| 8b | `87bc496` | random board-size/path-length knobs moved off the landing INTO the random gameplay screen (live-regenerate; untracked) |
+| 8c | `818eab3` | `@vercel/analytics@2.0.1` + `<Analytics/>` (official React entrypoint, PROD-gated, inert in dev) |
+
+**Not done (Nil-gated):** push / Vercel deploy / DNS. Deploying batch 6–8 +
+analytics is one `git push` + Vercel redeploy away whenever Nil wants.
+**Parked confirmations:** solved = won (★ for perfect) — still the shipped default.
