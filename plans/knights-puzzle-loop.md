@@ -3,7 +3,15 @@
 **Re-read this file at the start of every iteration.** [why: conversations
 compact, this file does not. It is the loop's memory.]
 
-> ✅ **COMPLETE (2026-06-22).** All slices 5a–5g shipped + reviewer-approved.
+> 🔄 **BATCH 6 IN PROGRESS (2026-06-23, Game Maker).** New asks from Nil: a
+> **View Solution** button, a **Hint** button, difficulty **SCORING** (branching
+> product), a **100-puzzle difficulty-sorted landing page**, **remove** the
+> easy/med/hard/custom menu (keep "Generate random puzzle" = old custom), and
+> client-side **solved tracking** for the 100. Slice plan + pickups are at the
+> BOTTOM of this file ("BATCH 6"). Plan: deliver ALL → Game Reviewer reviews
+> designs + code → show Nil on a local port, THEN ask anything.
+>
+> ✅ **Batch 5 COMPLETE (2026-06-22).** All slices 5a–5g shipped + reviewer-approved.
 > Code: github.com/nmamano/knights-puzzle. Live on Vercel:
 > https://knights-puzzle.vercel.app (READY). Custom domain knight.nilmamano.com
 > added to the Vercel project — **pending Nil**: add DNS `A knight 76.76.21.21`
@@ -555,3 +563,142 @@ total` (perfect should still satisfy engine `isWin`). Keep `tryMove`
   `/home/nil/nil/nilmamano.com/app/games/page.tsx` + card image under
   `public/games/`. That repo has UNRELATED uncommitted changes (resume, a blog
   file) — commit ONLY the games page + card image, never those.
+
+---
+
+# BATCH 6 — view solution · hint · difficulty score · catalog · storage
+
+**Status: IN PROGRESS (authored 2026-06-23 by Game Maker).** Requested by Nil.
+Deliver ALL six features, get Game Reviewer to review designs + code, then show
+Nil on a local dev port before asking anything (Nil pre-authorised autonomy:
+"deliver all of this and show me on local port before asking me anything").
+
+## North-star delta (does NOT dilute the locked north star)
+
+- Two views now: a **catalog** (100 numbered, difficulty-sorted puzzles, the new
+  landing page) and the **play** board. The easy/med/hard/custom menu is gone;
+  "Generate random puzzle" (= old custom, untracked) survives at the bottom.
+- **No new solver.** Difficulty score, hint, and view-solution ALL read the
+  existing witness path `puzzle.path` (valid by construction) — they index the
+  witness / count neighbours, they never search. This is the load-bearing rail
+  for the whole batch.
+
+## New locked rails (extend Standing rails)
+
+- The 100 catalog puzzles are **deterministic + stable** (fixed master seed) so
+  numbering and solved-tracking stay meaningful across reloads/users. Never
+  randomise the catalog.
+- **Difficulty score** = the PRODUCT of the number of legal options at each
+  branching point along the witness path (branching point = a step with ≥2 legal
+  moves). Pure function of the witness path. No solver.
+- **Hint "correct next move"** is defined relative to the WITNESS path ONLY:
+  valid while the player's visited squares are a prefix of `puzzle.path`; once
+  they deviate, the hint honestly says they've strayed (no solver can confirm an
+  alternate perfect path).
+- Custom / "Generate random puzzle" runs are **never tracked** in storage.
+- Storage is **client-side localStorage only** (no backend), keyed by a stable
+  puzzle id + catalog version, degrading gracefully if storage is unavailable.
+
+## Gates delta
+
+Same gate stack (`bun run ci && bun run smoke`). `window.__KP__` grows new fields
+(the oracle stays authoritative, never judged by pixels): `view`,
+`puzzleNumber`/`puzzleId`, `difficultyScore`, `hint`, `solutionShown`,
+`solvedCount`/`solved`. Smoke extended per slice.
+
+## Decision protocol delta
+
+- **parked-for-Nil (proceeding with a default; confirm at delivery):** "solved"
+  = reached the goal (won); a perfect run (all squares) earns a star. Default
+  chosen so the loop stays unblocked.
+- **Assistant-alone:** catalog n/steps ranges + master seed, difficulty-score
+  overflow handling, exact RNG, component structure, test layout.
+- **With reviewer (Game Reviewer):** this slice plan; the `__KP__` additions;
+  hint/solution UX + copy; catalog layout; storage key scheme.
+
+## Batch-6 slice plan (tick on commit)
+
+- [ ] **6a — Difficulty score (pure).** `difficultyScore(puzzle)` = product of
+      legal-option counts at each ≥2-branch step along the witness path; expose
+      it in the play view + `__KP__.difficultyScore`. Hand-computed unit tests.
+- [ ] **6b — Puzzle catalog (pure).** Deterministic `buildCatalog()` → 100
+      puzzles across random n/steps, scored, sorted ascending, numbered 1..100.
+      Unit-tested (deterministic, exactly 100, sorted, each regenerates valid).
+- [ ] **6c — Landing page + routing.** Catalog view (grid of 100 sorted tiles) ↔
+      play view; REMOVE the easy/med/hard/custom menu; add "Generate random
+      puzzle" (= old custom, untracked) at the bottom. `__KP__.view`/`puzzleNumber`.
+- [ ] **6d — Solved tracking (localStorage).** Persist solved catalog puzzles
+      (won; star if perfect); show on tiles; random runs untracked. Pure storage
+      module (injectable Storage) unit-tested; smoke confirms persistence.
+- [ ] **6e — View Solution button (play view).** Reveal the witness solution
+      (playback from a reset along `puzzle.path`); board inert during playback;
+      `__KP__.solutionShown`. Smoke clicks it and judges via the surface.
+- [ ] **6f — Hint button (play view).** `hint(state)`: on-witness-prefix →
+      highlight the next path cell; deviated → "off the optimal path" message;
+      won → already solved. Pure + unit-tested; `__KP__.hint`.
+
+> Ordering note: pure foundations (6a, 6b) + the restructure (6c, 6d) come first
+> so View-Solution/Hint (6e, 6f) are built ONCE, in the final play view.
+> Reviewer may reorder.
+
+## Parked-for-Nil queue (batch 6)
+
+- Confirm "solved = won (star for perfect)" — proceeding with this default.
+- Deploying batch 6 (push / Vercel / DNS) stays Nil-gated — NOT done in the loop.
+
+## Reviewer plan-gate conditions (2026-06-23, Game Reviewer — APPROVED w/ conditions)
+
+Fold these into the relevant slices:
+
+- **6a:** `branchingProfile(puzzle): number[]` is the testable primitive;
+  `difficultyScore` = product of profile entries ≥ 2. Use
+  `legalMoves(puzzle, path[i], path.slice(0, i + 1))` (correct next cell
+  included, previous excluded). Tests: no-branch ⇒ 1; [2,3,4] ⇒ 24; visited
+  input not mutated. Overflow: don't cap; document; `Number.isFinite` checks in
+  the catalog tests; revisit log/BigInt only if n/steps grow a lot.
+- **Hint copy:** once visited is NOT a prefix of `puzzle.path`, do NOT claim the
+  move is wrong in ALL solutions — only that it's off the shown/generated
+  witness. Surface STRUCTURED data: `status` ∈ {`prefix`,`off_path`,`won`} plus
+  `nextCell` when applicable (not copy-only).
+- **6b catalog:** test exactly 100, stable ordering, scores sorted ascending,
+  each entry has a stable id + valid regenerated puzzle, and a real spread (not
+  all score 1 / not all same n). If a walk comes back shorter than requested,
+  store/display the ACTUAL `puzzle.path.length` so the UI never implies an
+  unreached target.
+- **6d storage:** `CATALOG_VERSION` named constant — bump if catalog gen, master
+  seed, or id scheme changes. Inject a Storage-like object; catch get/set/JSON
+  failures; unavailable localStorage ⇒ degrade to untracked, never break play.
+  Random/custom runs: `puzzleId` null/undefined, NEVER write solved state.
+  Update solved only on the transition to `won` for catalog puzzles; PRESERVE a
+  prior star if a later imperfect win occurs.
+- **6e View Solution:** board + run-mutating controls inert/disabled during
+  playback; Reset/Retry after playback returns to normal. `__KP__.solutionShown`
+  must be deterministic (false → true + an exposed playback/solution state), not
+  a transient animation flag that can race the smoke.
+
+## SLICE-6a PICKUP — Difficulty score (authored now)
+
+- **Baseline commit:** `fccdc94` (batch 5 complete; baseline gates green: ci ✓,
+  smoke ✓ on Chrome 145, 53 unit tests).
+- **Goal:** a pure `difficultyScore(puzzle): number` (+ likely
+  `branchingProfile(puzzle): number[]`) in a new `src/analysis.ts` (pure, passes
+  both tsconfigs), a small play-view "Difficulty NN" display, and
+  `__KP__.difficultyScore`.
+- **Load-bearing mechanics / traps:**
+  - Primitive `branchingProfile(puzzle): number[]`: at step i (0..len-2) push
+    `legalMoves(puzzle, path[i], path.slice(0, i + 1)).length` (correct next cell
+    `path[i+1]` included; path[0..i] excluded). `difficultyScore` = product of
+    profile entries that are ≥ 2 (entries == 1 contribute factor 1; no branches →
+    score 1). Do NOT mutate the puzzle / its path.
+  - NOT a solver: indexes the witness + counts neighbours, O(path length).
+  - Determinism: pure function of the puzzle; same puzzle → same score.
+  - Overflow: long high-branch paths can exceed 2^53; fine for sorting (finite,
+    monotone-ish). Document; don't cap unless the reviewer wants one.
+- **Acceptance criteria:**
+  - Hand-built boards with a known branch profile give the exact product (e.g.
+    branch counts [2,3,4] → 24; a straight-line witness → 1).
+  - Score shown in the play view; `__KP__.difficultyScore` exposed.
+  - All gates green (`bun run ci && bun run smoke`).
+- **Decide-with-reviewer:** module name/location; whether to also expose
+  `branchingProfile`; overflow handling; the play-view label copy.
+- **Locked:** witness-only (no solver); pure; engine/game rules untouched.
