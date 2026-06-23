@@ -130,6 +130,15 @@ h1 {
   color: #4a4366;
 }
 
+.status-sep {
+  margin: 0 0.5rem;
+  opacity: 0.5;
+}
+
+.diff-score {
+  white-space: nowrap;
+}
+
 .board-wrap {
   position: relative;
   width: fit-content;

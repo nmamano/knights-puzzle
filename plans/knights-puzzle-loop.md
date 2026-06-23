@@ -618,9 +618,12 @@ Same gate stack (`bun run ci && bun run smoke`). `window.__KP__` grows new field
 
 ## Batch-6 slice plan (tick on commit)
 
-- [ ] **6a — Difficulty score (pure).** `difficultyScore(puzzle)` = product of
+- [x] **6a — Difficulty score (pure).** `difficultyScore(puzzle)` = product of
       legal-option counts at each ≥2-branch step along the witness path; expose
       it in the play view + `__KP__.difficultyScore`. Hand-computed unit tests.
+      ✅ committed (reviewer-approved). Reviewer note for 6b: difficultyScore is
+      a display/ranking heuristic — add a deterministic tie-breaker (score, n,
+      actual path length, seed/id) so catalog order is stable.
 - [ ] **6b — Puzzle catalog (pure).** Deterministic `buildCatalog()` → 100
       puzzles across random n/steps, scored, sorted ascending, numbered 1..100.
       Unit-tested (deterministic, exactly 100, sorted, each regenerates valid).

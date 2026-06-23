@@ -20,6 +20,7 @@ import {
   type DifficultyId,
   type Settings,
 } from "./difficulty";
+import { difficultyScore } from "./analysis";
 
 // Evidence surface: the smoke gate asserts against window.__KP__, never pixels.
 declare global {
@@ -134,6 +135,8 @@ export default function App() {
 
   const legal = useMemo(() => currentLegalMoves(game), [game]);
   const totalCells = game.puzzle.path.length;
+  // Witness-path branchiness (pure, no solver) — see src/analysis.ts.
+  const diffScore = useMemo(() => difficultyScore(game.puzzle), [game.puzzle]);
   const canUndo = game.visited.length > 1;
   const scoreVal = score(game);
   const perfect = isPerfect(game);
@@ -156,13 +159,14 @@ export default function App() {
       totalCells,
       total: totalCells,
       score: scoreVal,
+      difficultyScore: diffScore,
       perfect,
       stuck,
       legalMoves: legal.map(cloneCell),
       solution: game.puzzle.path.map(cloneCell),
       won: game.won,
     };
-  }, [game, legal, totalCells, settings, scoreVal, perfect, stuck]);
+  }, [game, legal, totalCells, settings, scoreVal, diffScore, perfect, stuck]);
 
   // Apply new settings AND regenerate a puzzle with a fresh seed (snap, no slide).
   const regenerate = useCallback((s: Settings) => {
@@ -278,6 +282,12 @@ export default function App() {
 
       <p className="status" role="status">
         Score {scoreVal} / {totalCells}
+        <span className="status-sep" aria-hidden="true">
+          ·
+        </span>
+        <span className="diff-score">
+          Difficulty {diffScore.toLocaleString()}
+        </span>
       </p>
 
       <div className="board-wrap">
