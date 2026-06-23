@@ -1,5 +1,5 @@
 import { getCatalog, type CatalogPuzzle } from "./catalog";
-import { solvedCount, type SolvedMap } from "./storage";
+import { isRecordPerfect, solvedCount, type SolvedMap } from "./storage";
 import { maxSteps, MAX_N, MIN_N, MIN_STEPS, type Settings } from "./difficulty";
 
 type CatalogViewProps = {
@@ -33,14 +33,17 @@ export default function CatalogView({
       <ul className="catalog-grid">
         {puzzles.map((p) => {
           const rec = solved[p.id];
-          const isSolved = !!rec?.solved;
-          const isPerfect = !!rec?.perfect;
-          const state = isPerfect ? " (perfect)" : isSolved ? " (solved)" : "";
+          const isPerfect = !!rec && isRecordPerfect(rec);
+          const state = isPerfect
+            ? " (perfect)"
+            : rec
+              ? ` (solved ${rec.bestScore} of ${rec.total})`
+              : "";
           return (
             <li key={p.number}>
               <button
                 type="button"
-                className={`puzzle-tile${isSolved ? " solved" : ""}${
+                className={`puzzle-tile${rec ? " solved" : ""}${
                   isPerfect ? " perfect" : ""
                 }`}
                 data-puzzle={p.number}
@@ -48,9 +51,14 @@ export default function CatalogView({
                 aria-label={`Puzzle ${p.number}, difficulty ${p.difficultyScore.toLocaleString()}${state}`}
               >
                 <span className="tile-number">{p.number}</span>
-                {isSolved && (
+                {isPerfect && (
                   <span className="tile-badge" aria-hidden="true">
-                    {isPerfect ? "★" : "✓"}
+                    ★
+                  </span>
+                )}
+                {rec && !isPerfect && (
+                  <span className="tile-score" aria-hidden="true">
+                    {rec.bestScore}/{rec.total}
                   </span>
                 )}
               </button>

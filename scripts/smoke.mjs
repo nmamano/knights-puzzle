@@ -276,8 +276,14 @@ try {
     throw new Error(`covered ${solved.score}/${solved.total} squares`);
   }
   const solvedId = solved.puzzleId;
-  if (!solved.solved[solvedId] || !solved.solved[solvedId].perfect) {
-    throw new Error("catalog win was not recorded as solved+perfect");
+  const rec = solved.solved[solvedId];
+  if (!rec || rec.bestScore !== solved.total || rec.total !== solved.total) {
+    throw new Error(
+      `catalog win not recorded with full best score: ${JSON.stringify(rec)}`,
+    );
+  }
+  if (solved.perfectCount !== 1) {
+    throw new Error(`expected perfectCount 1, got ${solved.perfectCount}`);
   }
 
   // Navigate back to the catalog; the solved count carries over.
@@ -303,8 +309,9 @@ try {
   if (reloaded.solvedCount !== 1) {
     throw new Error("solved state did not persist across reload");
   }
-  if (!reloaded.solved[solvedId] || !reloaded.solved[solvedId].perfect) {
-    throw new Error("perfect star did not persist across reload");
+  const rrec = reloaded.solved[solvedId];
+  if (!rrec || rrec.bestScore !== rrec.total) {
+    throw new Error("perfect best-score did not persist across reload");
   }
 
   // Random-puzzle KNOBS: move the board-size slider to its max and confirm the

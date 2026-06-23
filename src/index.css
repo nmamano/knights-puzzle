@@ -125,8 +125,21 @@ h1 {
   line-height: 1;
   color: var(--accent);
 }
-.puzzle-tile.solved:not(.perfect) .tile-badge {
-  color: #5a9c39;
+/* Solved-but-imperfect tiles show the best score instead of a check. */
+.tile-score {
+  position: absolute;
+  bottom: 2px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 0.62rem;
+  line-height: 1;
+  color: #4f8a32;
+  font-family: var(--body);
+}
+.puzzle-tile.solved:not(.perfect) .tile-number {
+  /* nudge the number up a touch so the score strip has room */
+  transform: translateY(-2px);
 }
 .catalog-progress {
   font-family: var(--display);

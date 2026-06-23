@@ -914,12 +914,14 @@ Reviewer.
       ✅ gates green; awaiting diff-gate. `randomSettings` state in App (default
       6/12, customSettings clamps); `__KP__.randomSettings` exposed; smoke moves
       the board-size slider to max and asserts the random puzzle uses it.
-- [ ] **7c — Best-score on tiles (storage + UI).** Storage v2 record now keeps
+- [x] **7c — Best-score on tiles (storage + UI).** Storage v2 record now keeps
       `{ bestScore, total }` (sticky MAX score). On a catalog win, record the
       score (visited) + total. Tile badge: perfect (bestScore==total) → ★;
       solved-but-imperfect → show the SCORE, e.g. `21/25`, instead of ✓ (Nil).
       Storage key already re-scopes via CATALOG_VERSION v2, so the shape change
       is a clean reset. Pure storage tests updated.
+      ✅ gates green; awaiting diff-gate. `isRecordPerfect` helper; loadSolved
+      clamps bestScore≤total; verified visually (★ + score strips render).
 - [ ] **7d — UX polish (UI/CSS).** "Next puzzle →" on a catalog win (loads #N+1;
       hidden on #100); reserve a fixed-height message slot so the controls don't
       jump when hint/solution/stuck/win notes appear (Nil: Hint + stuck both push

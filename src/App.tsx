@@ -357,8 +357,10 @@ export default function App() {
       setHintShown(false); // a move answers the current hint
       setGame(next);
       if (next.won && source.id) {
+        const wonScore = next.visited.length;
+        const wonTotal = next.puzzle.path.length;
         setSolved((cur) =>
-          recordSolved(storage, cur, source.id, isPerfect(next)),
+          recordSolved(storage, cur, source.id, wonScore, wonTotal),
         );
       }
     },
