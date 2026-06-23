@@ -3,10 +3,16 @@
 **Re-read this file at the start of every iteration.** [why: conversations
 compact, this file does not. It is the loop's memory.]
 
+> 🚀 **DEPLOYED (2026-06-23, Nil-authorized).** Pushed batches 6–9 to
+> github.com/nmamano/knights-puzzle (`fccdc94..bc318f6`) and deployed to Vercel
+> production. LIVE on https://knights-puzzle.vercel.app AND the custom domain
+> https://knight.nilmamano.com (alias resolved). Verified live: catalogSize 99,
+> #99 boss difficulty 2,073,600, 0 page errors. @vercel/analytics now collecting.
+>
 > ✅ **BATCH 9 COMPLETE (2026-06-23, Game Maker).** Difficulty no longer counts
 > an early hop to the goal as a branch (`branchingProfile`); catalog reshuffled,
 > `CATALOG_VERSION` → 4; boss #99 2,764,800 → 2,073,600 (still hardest). Reviewer-
-> approved (95 tests). Commit below. Running on 5280. NOT pushed/deployed.
+> approved (95 tests).
 >
 > ✅ **BATCH 8 COMPLETE (2026-06-23, Game Maker).** Shipped 8a–8c, all reviewer-
 > approved: catalog → 99 puzzles (boss = #99, CATALOG_VERSION 3), random
