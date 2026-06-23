@@ -307,19 +307,38 @@ try {
     throw new Error("perfect star did not persist across reload");
   }
 
-  // "Generate random puzzle" loads an UNTRACKED random puzzle — winning it must
-  // NOT change the solved count.
+  // Random-puzzle KNOBS: move the board-size slider to its max and confirm the
+  // remembered random settings update (from the default 6).
+  await page.getByLabel("Board size").focus();
+  await page.keyboard.press("End");
+  await page.waitForFunction(
+    () =>
+      window.__KP__ &&
+      window.__KP__.randomSettings &&
+      window.__KP__.randomSettings.n > 6,
+    { timeout: 5000 },
+  );
+  const knob = await page.evaluate(() => window.__KP__.randomSettings);
+
+  // "Generate random puzzle" loads an UNTRACKED random puzzle AT THE CHOSEN SIZE;
+  // winning it must NOT change the solved count.
   await page.getByRole("button", { name: /generate random puzzle/i }).click();
   await page.waitForFunction(
-    () => {
+    (k) => {
       const s = window.__KP__;
-      return s && s.view === "play" && s.puzzleNumber === null;
+      return s && s.view === "play" && s.puzzleNumber === null && s.n === k.n;
     },
+    knob,
     { timeout: 8000 },
   );
   const random = await page.evaluate(() => window.__KP__);
   if (random.puzzleId !== null) {
     throw new Error("random puzzle must have a null puzzleId (untracked)");
+  }
+  if (random.n !== knob.n || random.steps !== knob.steps) {
+    throw new Error(
+      `random puzzle ignored the knobs (got n=${random.n} steps=${random.steps}, want n=${knob.n} steps=${knob.steps})`,
+    );
   }
   if (!Array.isArray(random.solution) || random.solution.length < 2) {
     throw new Error("random puzzle exposed no witness solution");

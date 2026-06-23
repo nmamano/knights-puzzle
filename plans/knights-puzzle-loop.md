@@ -909,8 +909,11 @@ Reviewer.
       `CATALOG_VERSION` → 2 (ids change → solved progress re-scopes). Harvest of
       8000 candidates → 100 unique difficulties; buildCatalog ~70ms (memoized).
       ✅ gates green; awaiting diff-gate.
-- [ ] **7b — Random-puzzle knobs (UI).** "Generate random puzzle" gets board-size + path-length sliders (reuse difficulty.ts clamps); remembered so the
+- [x] **7b — Random-puzzle knobs (UI).** "Generate random puzzle" gets board-size + path-length sliders (reuse difficulty.ts clamps); remembered so the
       play-view "New random puzzle" reuses them. Also remove the catalog tagline + "just for fun…" foot (copy edits).
+      ✅ gates green; awaiting diff-gate. `randomSettings` state in App (default
+      6/12, customSettings clamps); `__KP__.randomSettings` exposed; smoke moves
+      the board-size slider to max and asserts the random puzzle uses it.
 - [ ] **7c — Best-score on tiles (storage + UI).** Storage v2 record now keeps
       `{ bestScore, total }` (sticky MAX score). On a catalog win, record the
       score (visited) + total. Tile badge: perfect (bestScore==total) → ★;

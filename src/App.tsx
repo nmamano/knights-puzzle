@@ -10,7 +10,7 @@ import {
   undoMove,
   type GameState,
 } from "./game";
-import { maxSteps, MAX_N, MIN_N, MIN_STEPS } from "./difficulty";
+import { customSettings, type Settings } from "./difficulty";
 import { difficultyScore, hint } from "./analysis";
 import { CATALOG_SIZE, getCatalog, type CatalogPuzzle } from "./catalog";
 import CatalogView from "./CatalogView";
@@ -69,15 +69,16 @@ function sourceFromCatalog(p: CatalogPuzzle): Source {
   return { n: p.n, steps: p.steps, seed: p.seed, number: p.number, id: p.id };
 }
 
-// A one-off random puzzle (the old "custom" path): random board size + path
-// length, kept playable by hand. Untracked.
-function randomSource(): Source {
-  const n = MIN_N + Math.floor(Math.random() * (MAX_N - MIN_N + 1)); // 4..9
-  const hi = maxSteps(n);
-  const lo = Math.max(MIN_STEPS, n);
-  const top = Math.max(lo, Math.min(hi, 30));
-  const steps = lo + Math.floor(Math.random() * (top - lo + 1));
-  return { n, steps, seed: randomSeed(), number: null, id: null };
+// A one-off random puzzle (the old "custom" path): the player's chosen board
+// size + path length, a fresh random seed. Untracked (number/id null).
+function randomSource(settings: Settings): Source {
+  return {
+    n: settings.n,
+    steps: settings.steps,
+    seed: randomSeed(),
+    number: null,
+    id: null,
+  };
 }
 
 // The trail's single animating segment: "draw" (a move) grows it from `from` to
@@ -110,6 +111,11 @@ export default function App() {
   const [solving, setSolving] = useState(false);
   // Whether the player has asked for a hint on the current position.
   const [hintShown, setHintShown] = useState(false);
+  // Board-size + path-length knobs for the "Generate random puzzle" option,
+  // remembered so the play-view "New random puzzle" reuses them.
+  const [randomSettings, setRandomSettings] = useState<Settings>(() =>
+    customSettings(6, 12),
+  );
   const playTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const clearPlayback = useCallback(() => {
     for (const id of playTimers.current) clearTimeout(id);
@@ -234,6 +240,7 @@ export default function App() {
       solving,
       hint: currentHint,
       hintShown,
+      randomSettings: { n: randomSettings.n, steps: randomSettings.steps },
     };
   }, [
     view,
@@ -251,6 +258,7 @@ export default function App() {
     solving,
     currentHint,
     hintShown,
+    randomSettings,
   ]);
 
   // Start a game from a source (catalog or random) and switch to the play view.
@@ -273,8 +281,19 @@ export default function App() {
     [startSource],
   );
   const handleRandom = useCallback(
-    () => startSource(randomSource()),
-    [startSource],
+    () => startSource(randomSource(randomSettings)),
+    [startSource, randomSettings],
+  );
+  // Slider changes update the remembered random settings only (customSettings
+  // clamps n into [MIN_N,MAX_N] and steps into [MIN_STEPS, maxSteps(n)], so
+  // changing n re-clamps steps); they do NOT start a puzzle.
+  const handleRandomN = useCallback(
+    (n: number) => setRandomSettings((s) => customSettings(n, s.steps)),
+    [],
+  );
+  const handleRandomSteps = useCallback(
+    (steps: number) => setRandomSettings((s) => customSettings(s.n, steps)),
+    [],
   );
   const handleBack = useCallback(() => {
     clearPlayback();
@@ -377,6 +396,9 @@ export default function App() {
         <CatalogView
           onPick={handlePick}
           onRandom={handleRandom}
+          onRandomN={handleRandomN}
+          onRandomSteps={handleRandomSteps}
+          randomSettings={randomSettings}
           solved={solved}
         />
       ) : (
