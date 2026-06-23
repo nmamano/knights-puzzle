@@ -10,7 +10,14 @@ import {
   undoMove,
   type GameState,
 } from "./game";
-import { customSettings, type Settings } from "./difficulty";
+import {
+  customSettings,
+  maxSteps,
+  MAX_N,
+  MIN_N,
+  MIN_STEPS,
+  type Settings,
+} from "./difficulty";
 import { difficultyScore, hint } from "./analysis";
 import {
   CATALOG_SIZE,
@@ -285,20 +292,30 @@ export default function App() {
     (p: CatalogPuzzle) => startSource(sourceFromCatalog(p)),
     [startSource],
   );
+  // "Generate random puzzle" (landing) and "New random puzzle" (in play): reuse
+  // the remembered settings with a fresh seed.
   const handleRandom = useCallback(
     () => startSource(randomSource(randomSettings)),
     [startSource, randomSettings],
   );
-  // Slider changes update the remembered random settings only (customSettings
-  // clamps n into [MIN_N,MAX_N] and steps into [MIN_STEPS, maxSteps(n)], so
-  // changing n re-clamps steps); they do NOT start a puzzle.
+  // The in-play random knobs LIVE-regenerate: remember the new settings and start
+  // a fresh random puzzle at that size/length (customSettings clamps n into
+  // [MIN_N,MAX_N] and steps into [MIN_STEPS, maxSteps(n)], so changing n
+  // re-clamps steps). startSource clears hint/solution/playback + new seed.
+  const regenRandom = useCallback(
+    (s: Settings) => {
+      setRandomSettings(s);
+      startSource(randomSource(s));
+    },
+    [startSource],
+  );
   const handleRandomN = useCallback(
-    (n: number) => setRandomSettings((s) => customSettings(n, s.steps)),
-    [],
+    (n: number) => regenRandom(customSettings(n, randomSettings.steps)),
+    [regenRandom, randomSettings.steps],
   );
   const handleRandomSteps = useCallback(
-    (steps: number) => setRandomSettings((s) => customSettings(s.n, steps)),
-    [],
+    (steps: number) => regenRandom(customSettings(randomSettings.n, steps)),
+    [regenRandom, randomSettings.n],
   );
   const handleBack = useCallback(() => {
     clearPlayback();
@@ -429,9 +446,6 @@ export default function App() {
         <CatalogView
           onPick={handlePick}
           onRandom={handleRandom}
-          onRandomN={handleRandomN}
-          onRandomSteps={handleRandomSteps}
-          randomSettings={randomSettings}
           solved={solved}
         />
       ) : (
@@ -444,6 +458,42 @@ export default function App() {
               {isRandom ? "Random puzzle" : `Puzzle #${source.number}`}
             </span>
           </div>
+
+          {/* Random-puzzle knobs live in the gameplay screen; changing one
+              live-regenerates a random puzzle at that size/length. */}
+          {isRandom && (
+            <div className="random-knobs">
+              <label className="slider">
+                <span>
+                  Board size: <strong>{randomSettings.n}</strong>
+                </span>
+                <input
+                  type="range"
+                  min={MIN_N}
+                  max={MAX_N}
+                  step={1}
+                  value={randomSettings.n}
+                  aria-label="Board size"
+                  onChange={(e) => handleRandomN(Number(e.target.value))}
+                />
+              </label>
+              <label className="slider">
+                <span>
+                  Path length: <strong>{randomSettings.steps}</strong> (
+                  {randomSettings.steps + 1} cells)
+                </span>
+                <input
+                  type="range"
+                  min={MIN_STEPS}
+                  max={maxSteps(randomSettings.n)}
+                  step={1}
+                  value={randomSettings.steps}
+                  aria-label="Path length"
+                  onChange={(e) => handleRandomSteps(Number(e.target.value))}
+                />
+              </label>
+            </div>
+          )}
 
           <p className="status" role="status">
             Score {scoreVal} / {totalCells}

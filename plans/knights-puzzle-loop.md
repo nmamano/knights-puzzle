@@ -981,7 +981,10 @@ Same gated loop. Reviewer = Game Reviewer
       Next-button bound already uses `number < CATALOG_SIZE`, so Next hides on #99.
       ✅ gates green; awaiting diff-gate. Renamed PINNED_100→PINNED_BOSS; #98=6144,
       #99=2,764,800; smoke catalogSize assertion → 99.
-- [ ] **8b — Random knobs in the random GAMEPLAY screen (move off the landing).**
+- [x] **8b — Random knobs in the random GAMEPLAY screen (move off the landing).**
+      ✅ gates green; awaiting diff-gate. Landing = grid + button only; play view
+      shows the knobs when source.number==null; slider live-regenerates
+      (regenRandom), New random keeps settings+new seed, Retry resets.
       Nil clarified: "knobs directly in the random puzzle gameplay screen." So NO
       3rd view. Landing keeps just a "Generate random puzzle" button (sliders
       removed). The PLAY view, when the active puzzle is random (source.number
@@ -990,7 +993,7 @@ Same gated loop. Reviewer = Game Reviewer
       match the puzzle on screen); the existing "New random puzzle" button keeps
       the settings + new seed. Catalog play view shows NO knobs. `__KP__` already
       exposes randomSettings; smoke moves the slider interaction into the random
-      play view (Generate → play → slide board size → assert __KP__.n).
+      play view (Generate → play → slide board size → assert **KP**.n).
 - [ ] **8c — Vercel Web Analytics.** Nil ENABLED the dashboard toggle (the
       human-only part). Add `@vercel/analytics` + `<Analytics/>` to the app so the
       deployed site reports page views. Inert in dev/local (no-op outside Vercel

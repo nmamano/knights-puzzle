@@ -147,7 +147,7 @@ h1 {
   font-size: 1.1rem;
   margin: 0 0 0.75rem;
 }
-/* Random-puzzle section on the landing page — board-size + path-length knobs. */
+/* Landing page: the "Generate random puzzle" button sits below the grid. */
 .random-panel {
   margin-top: 0.75rem;
   display: flex;
@@ -155,17 +155,13 @@ h1 {
   align-items: center;
   gap: 0.65rem;
 }
-.random-title {
-  font-family: var(--display);
-  font-size: 1.4rem;
-  color: #3a3357;
-  margin: 0;
-}
-.random-sliders {
+/* Random-puzzle knobs — shown in the random GAMEPLAY screen (not the landing). */
+.random-knobs {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
   width: min(92vw, 22rem);
+  margin: 0 auto 0.6rem;
 }
 .slider {
   display: flex;

@@ -330,38 +330,43 @@ try {
     throw new Error("perfect best-score did not persist across reload");
   }
 
-  // Random-puzzle KNOBS: move the board-size slider to its max and confirm the
-  // remembered random settings update (from the default 6).
-  await page.getByLabel("Board size").focus();
-  await page.keyboard.press("End");
-  await page.waitForFunction(
-    () =>
-      window.__KP__ &&
-      window.__KP__.randomSettings &&
-      window.__KP__.randomSettings.n > 6,
-    { timeout: 5000 },
-  );
-  const knob = await page.evaluate(() => window.__KP__.randomSettings);
-
-  // "Generate random puzzle" loads an UNTRACKED random puzzle AT THE CHOSEN SIZE;
-  // winning it must NOT change the solved count.
+  // "Generate random puzzle" from the catalog loads an UNTRACKED random puzzle.
+  // The board-size / path-length knobs live in the random GAMEPLAY screen.
   await page.getByRole("button", { name: /generate random puzzle/i }).click();
   await page.waitForFunction(
-    (k) => {
+    () => {
       const s = window.__KP__;
-      return s && s.view === "play" && s.puzzleNumber === null && s.n === k.n;
+      return s && s.view === "play" && s.puzzleNumber === null;
     },
-    knob,
     { timeout: 8000 },
   );
-  const random = await page.evaluate(() => window.__KP__);
+  let random = await page.evaluate(() => window.__KP__);
   if (random.puzzleId !== null) {
     throw new Error("random puzzle must have a null puzzleId (untracked)");
   }
-  if (random.n !== knob.n || random.steps !== knob.steps) {
-    throw new Error(
-      `random puzzle ignored the knobs (got n=${random.n} steps=${random.steps}, want n=${knob.n} steps=${knob.steps})`,
-    );
+
+  // The in-play board-size slider LIVE-regenerates a random puzzle at that size.
+  await page.getByLabel("Board size").focus();
+  await page.keyboard.press("End"); // → max board size
+  await page.waitForFunction(
+    () => {
+      const s = window.__KP__;
+      return (
+        s &&
+        s.view === "play" &&
+        s.puzzleNumber === null &&
+        s.randomSettings.n > 6 &&
+        s.n === s.randomSettings.n // visible puzzle stays in sync with the knob
+      );
+    },
+    { timeout: 8000 },
+  );
+  random = await page.evaluate(() => window.__KP__);
+  if (random.puzzleId !== null) {
+    throw new Error("random stayed untracked after the slider (null puzzleId)");
+  }
+  if (random.steps !== random.randomSettings.steps) {
+    throw new Error("random steps out of sync with the knob");
   }
   if (!Array.isArray(random.solution) || random.solution.length < 2) {
     throw new Error("random puzzle exposed no witness solution");
