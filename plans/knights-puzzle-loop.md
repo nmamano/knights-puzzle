@@ -3,6 +3,11 @@
 **Re-read this file at the start of every iteration.** [why: conversations
 compact, this file does not. It is the loop's memory.]
 
+> 🔄 **BATCH 7 IN PROGRESS (2026-06-23, Game Maker).** Nil's polish feedback
+> after batch 6: catalog v2 (unique difficulties + pinned #100), random-puzzle
+> knobs, "Next puzzle" button, no-shift message layout, copy edits. Slice plan at
+> the BOTTOM ("BATCH 7"). Same gated loop; reviewer = Game Reviewer.
+>
 > ✅ **BATCH 6 COMPLETE (2026-06-23, Game Maker).** Shipped 6a–6f, all
 > reviewer-approved (plan-gate + diff-gate each): View Solution, Hint, difficulty
 > SCORING (branching product), the 100-puzzle difficulty-sorted landing page,
@@ -49,9 +54,10 @@ slice's checkbox in that same commit). Never start the next slice before the
 current one is committed.
 
 - Reviewer is **Game Reviewer**, agent id `agent-1780864878869-eq7t`
-  (gpt-5.5, same room/cwd context). Endpoint:
-  `POST localhost:4000/agents/agent-1780864878869-eq7t/message`
+  (gpt-5.5, same room/cwd context). Endpoint (as of the 2026-06-23 server
+  restart): `POST localhost:4000/api/agents/agent-1780864878869-eq7t/messages`
   with header `Authorization: Bearer $ISOMUX_AGENT_TOKEN`, body `{"text":"..."}`.
+  [The older `/agents/<id>/message` path now 404s — use `/api/agents/<id>/messages`.]
 - When waiting on the reviewer, end the turn with a long fallback wakeup
   (~20–25 min). The reviewer's reply is the real wake signal.
 - A bug found by a gate gets a regression test at the right layer **in the
@@ -857,28 +863,88 @@ round(0.7·maxSteps(n)), 26)]` — the 26-cap keeps the hardest puzzles playable
 All six slices committed, every gate green (`bun run ci && bun run smoke`), and
 each slice plan-gated + diff-gated by Game Reviewer.
 
-| Slice | Commit | What landed |
-|---|---|---|
-| plan | `790da01` | batch-6 standing orders + 6a handoff |
-| 6a | `d00a152` | difficulty SCORE = product of witness branch-factors (pure, no solver) |
-| 6b | `f0e8422` | deterministic 100-puzzle catalog, ranked + numbered 1..100 |
-| 6c | `a4f497d` | catalog landing page + routing; removed the difficulty menu; "Generate random puzzle" |
-| 6d | `f2027e7` | localStorage solved-tracking (✓/★, "Solved N/100"); random untracked |
-| 6e | `b8060b7` | View Solution button (witness playback; never credits a solve) |
-| 6f | `8f8ff65` | Hint button (next correct move / honest off-path; witness-only) |
+| Slice | Commit    | What landed                                                                           |
+| ----- | --------- | ------------------------------------------------------------------------------------- |
+| plan  | `790da01` | batch-6 standing orders + 6a handoff                                                  |
+| 6a    | `d00a152` | difficulty SCORE = product of witness branch-factors (pure, no solver)                |
+| 6b    | `f0e8422` | deterministic 100-puzzle catalog, ranked + numbered 1..100                            |
+| 6c    | `a4f497d` | catalog landing page + routing; removed the difficulty menu; "Generate random puzzle" |
+| 6d    | `f2027e7` | localStorage solved-tracking (✓/★, "Solved N/100"); random untracked                  |
+| 6e    | `b8060b7` | View Solution button (witness playback; never credits a solve)                        |
+| 6f    | `8f8ff65` | Hint button (next correct move / honest off-path; witness-only)                       |
 
 **Running for Nil:** `bun run dev -- --port 5280 --host` (harness-tracked bg).
 **Not done (Nil-gated):** push / Vercel deploy / DNS — unchanged from batch 5.
 
 **parked-for-Nil (awaiting confirmation, default already shipped):**
+
 - "Solved" = reached the goal (won); a perfect run (all squares) earns a ★. If
   Nil instead wants "solved" to REQUIRE perfect, it's a small change in
   `recordSolved` + the tile/`__KP__` count (and a CATALOG_VERSION bump is NOT
   needed; the stored shape is unchanged).
 
 **Deferred (non-blocking, reviewer-noted):**
+
 - `loadSolved` accepts any object-shaped record; could normalize `perfect ⇒
-  solved` and count only current-catalog ids so hand-edited localStorage can't
+solved` and count only current-catalog ids so hand-edited localStorage can't
   produce odd totals.
 - Optional: Prev/Next navigation between catalog puzzles; a compact difficulty
   display for very large scores; "Next puzzle" after a catalog win.
+
+---
+
+# BATCH 7 — polish round (Nil feedback, 2026-06-23)
+
+**Status: IN PROGRESS.** Nil's follow-up after batch 6. Same gated loop
+(plan-gate → implement → ci+smoke → diff-gate → ONE commit). Reviewer = Game
+Reviewer.
+
+## Asks → slices (tick on commit)
+
+- [x] **7a — Catalog v2: unique difficulties + pinned #100 (pure).** Regenerate
+      so each difficulty appears at most ONCE. Take the 99 SMALLEST distinct
+      difficulties → #1 = difficulty 1, #2 = difficulty 2, then unique ascending
+      (#99 = 6400). PIN #100 = the current #100 puzzle (`7-26-2045617612`,
+      difficulty 2,764,800, 27 cells — the hard landmark Nil wants kept). Bumped
+      `CATALOG_VERSION` → 2 (ids change → solved progress re-scopes). Harvest of
+      8000 candidates → 100 unique difficulties; buildCatalog ~70ms (memoized).
+      ✅ gates green; awaiting diff-gate.
+- [ ] **7b — Random-puzzle knobs (UI).** "Generate random puzzle" gets board-size + path-length sliders (reuse difficulty.ts clamps); remembered so the
+      play-view "New random puzzle" reuses them. Also remove the catalog tagline + "just for fun…" foot (copy edits).
+- [ ] **7c — Best-score on tiles (storage + UI).** Storage v2 record now keeps
+      `{ bestScore, total }` (sticky MAX score). On a catalog win, record the
+      score (visited) + total. Tile badge: perfect (bestScore==total) → ★;
+      solved-but-imperfect → show the SCORE, e.g. `21/25`, instead of ✓ (Nil).
+      Storage key already re-scopes via CATALOG_VERSION v2, so the shape change
+      is a clean reset. Pure storage tests updated.
+- [ ] **7d — UX polish (UI/CSS).** "Next puzzle →" on a catalog win (loads #N+1;
+      hidden on #100); reserve a fixed-height message slot so the controls don't
+      jump when hint/solution/stuck/win notes appear (Nil: Hint + stuck both push
+      buttons down); make the hint glow a bit MORE obvious; remaining copy edits.
+
+## Key interpretation (flagged to Nil)
+
+"Cap to 99 but keep #100" → catalog = 100 entries: #1–#99 freshly generated with
+the 99 SMALLEST distinct difficulties (1, 2, 3, …, ~6912); #100 = pinned current
+#100 (2,764,800). A clean unique-difficulty ramp 1→99 then a hard "boss" #100.
+278 distinct difficulties are harvestable so 99 is easily met. If Nil instead
+wants the 99 SPREAD across the full range, that's a one-line selection change.
+
+## Copy edits (Nil, verbatim targets)
+
+- off-path hint → "You've strayed from the planned solution. Undo or Retry."
+- catalog tagline "Pick a puzzle — ordered easiest (1) to hardest (100)." → REMOVE
+- catalog foot "Random puzzles are just for fun — they aren't tracked." → REMOVE
+- solution note → "Click Retry to play it yourself."
+- stuck note "No moves left — Undo a step, Retry this board, or pick another
+  puzzle." → "No moves left. Undo, Retry, or pick a different puzzle."
+- bottom hint → "Click a highlighted square to move the knight. It can only land
+  on a square it hasn't visited yet." (drop the "Stuck? …" tail)
+
+## Notes / rails (unchanged)
+
+- CATALOG_VERSION → 2 RESETS solved progress (the 100 puzzles change). Expected.
+- Still client-side only · no solver · not pushed/deployed (Nil-gated).
+- Build cost: catalog v2 harvests distinct difficulties from a deterministic pool
+  (~6–8k generatePuzzle calls) at first getCatalog(); memoized. Measure build
+  time; keep it well under ~300ms or precompute.

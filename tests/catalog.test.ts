@@ -18,6 +18,10 @@ describe("catalog shape", () => {
     expect(catalog.length).toBe(CATALOG_SIZE);
   });
 
+  test("CATALOG_VERSION is 2 (storage rescope is intentional, not accidental)", () => {
+    expect(CATALOG_VERSION).toBe(2);
+  });
+
   test("is numbered 1..100 contiguously", () => {
     expect(catalog.map((p) => p.number)).toEqual(
       Array.from({ length: CATALOG_SIZE }, (_, i) => i + 1),
@@ -32,26 +36,49 @@ describe("catalog shape", () => {
   });
 });
 
-describe("catalog ordering", () => {
-  test("difficulty scores are non-decreasing (sorted ascending)", () => {
+describe("catalog difficulties (unique + ascending)", () => {
+  test("all 100 difficulties are unique", () => {
+    expect(new Set(catalog.map((p) => p.difficultyScore)).size).toBe(
+      CATALOG_SIZE,
+    );
+  });
+
+  test("strictly increasing by difficulty", () => {
     for (let i = 1; i < catalog.length; i++) {
-      expect(catalog[i].difficultyScore).toBeGreaterThanOrEqual(
+      expect(catalog[i].difficultyScore).toBeGreaterThan(
         catalog[i - 1].difficultyScore,
       );
     }
   });
 
-  test("ties break deterministically by (score, n, cells, id)", () => {
-    for (let i = 1; i < catalog.length; i++) {
-      const a = catalog[i - 1];
-      const b = catalog[i];
-      if (a.difficultyScore !== b.difficultyScore) continue;
-      expect(a.n).toBeLessThanOrEqual(b.n);
-      if (a.n === b.n) {
-        expect(a.cells).toBeLessThanOrEqual(b.cells);
-        if (a.cells === b.cells) expect(a.id <= b.id).toBe(true);
-      }
+  test("#1 has difficulty 1 and #2 has difficulty 2", () => {
+    expect(catalog[0].difficultyScore).toBe(1);
+    expect(catalog[1].difficultyScore).toBe(2);
+  });
+
+  test("#99 is easier than the pinned #100", () => {
+    expect(catalog[98].difficultyScore).toBeLessThan(
+      catalog[99].difficultyScore,
+    );
+  });
+
+  test("all difficulties are finite", () => {
+    for (const p of catalog) {
+      expect(Number.isFinite(p.difficultyScore)).toBe(true);
     }
+  });
+});
+
+describe("pinned #100", () => {
+  test("#100 is the kept boss puzzle 7-26-2045617612", () => {
+    const p = catalog[99];
+    expect(p.number).toBe(100);
+    expect(p.id).toBe("7-26-2045617612");
+    expect(p.n).toBe(7);
+    expect(p.steps).toBe(26);
+    expect(p.seed).toBe(2045617612);
+    expect(p.difficultyScore).toBe(2764800);
+    expect(p.cells).toBe(27);
   });
 });
 
@@ -63,29 +90,10 @@ describe("catalog determinism + regeneration", () => {
   test("each entry regenerates the exact puzzle (score + cells match)", () => {
     for (const p of catalog) {
       const puzzle = generatePuzzle(p.n, p.steps, p.seed);
-      // ACTUAL cells may be < steps + 1 (a walk can dead-end early).
       expect(puzzle.path.length).toBe(p.cells);
       expect(p.cells).toBeLessThanOrEqual(p.steps + 1);
       expect(difficultyScore(puzzle)).toBe(p.difficultyScore);
-      expect(Number.isFinite(p.difficultyScore)).toBe(true);
-      expect(p.difficultyScore).toBeGreaterThanOrEqual(1);
     }
-  });
-});
-
-describe("catalog spread", () => {
-  test("spans multiple board sizes and many distinct difficulties", () => {
-    expect(new Set(catalog.map((p) => p.n)).size).toBeGreaterThanOrEqual(3);
-    expect(
-      new Set(catalog.map((p) => p.difficultyScore)).size,
-    ).toBeGreaterThanOrEqual(10);
-    expect(catalog[catalog.length - 1].difficultyScore).toBeGreaterThan(
-      catalog[0].difficultyScore,
-    );
-    // Not "all score 1": fewer than half are trivial.
-    expect(catalog.filter((p) => p.difficultyScore === 1).length).toBeLessThan(
-      CATALOG_SIZE / 2,
-    );
   });
 });
 
@@ -99,10 +107,5 @@ describe("catalog access", () => {
     expect(catalogByNumber(100)?.number).toBe(100);
     expect(catalogByNumber(0)).toBeUndefined();
     expect(catalogByNumber(101)).toBeUndefined();
-  });
-
-  test("CATALOG_VERSION is a positive integer", () => {
-    expect(Number.isInteger(CATALOG_VERSION)).toBe(true);
-    expect(CATALOG_VERSION).toBeGreaterThanOrEqual(1);
   });
 });
