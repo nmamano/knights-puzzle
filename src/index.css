@@ -368,6 +368,19 @@ h1 {
   margin: 0.25rem auto 0;
 }
 
+/* While the solution is being shown, the board is a preview — not interactive. */
+.board.inert {
+  pointer-events: none;
+}
+
+.solution-note {
+  font-family: var(--display);
+  color: var(--accent);
+  font-size: 1.25rem;
+  max-width: 30rem;
+  margin: 0.25rem auto 0.5rem;
+}
+
 @keyframes pop {
   0% {
     transform: scale(0.6);

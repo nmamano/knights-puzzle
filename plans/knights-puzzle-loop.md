@@ -639,9 +639,12 @@ Same gate stack (`bun run ci && bun run smoke`). `window.__KP__` grows new field
       module (injectable Storage) unit-tested; smoke confirms persistence.
       ✅ committed (reviewer-approved). Recording happens on the winning CLICK
       (not an effect) so View-Solution playback won't mark a puzzle solved.
-- [ ] **6e — View Solution button (play view).** Reveal the witness solution
+- [x] **6e — View Solution button (play view).** Reveal the witness solution
       (playback from a reset along `puzzle.path`); board inert during playback;
       `__KP__.solutionShown`. Smoke clicks it and judges via the surface.
+      ✅ committed (reviewer-approved). Deterministic completion signal:
+      `solutionShown && !solving && knight==end && visitedCount==total`; never
+      marks the puzzle solved.
 - [ ] **6f — Hint button (play view).** `hint(state)`: on-witness-prefix →
       highlight the next path cell; deviated → "off the optimal path" message;
       won → already solved. Pure + unit-tested; `__KP__.hint`.
@@ -795,3 +798,28 @@ round(0.7·maxSteps(n)), 26)]` — the 26-cap keeps the hardest puzzles playable
   puzzle and asserts `solvedCount` UNCHANGED. `bun run ci && bun run smoke` green.
 - **Locked:** client-side localStorage only; random untracked; sticky perfect;
   no solver; key scoped by CATALOG_VERSION.
+
+## SLICE-6e PICKUP — View Solution (authored after 6d)
+
+- **Baseline commit:** `f2027e7` (6d solved tracking).
+- **What 6d taught (fold in):** recording lives in the click handler, so a
+  playback that bypasses `handleCellClick` will NOT mark the puzzle solved.
+- **Goal:** a "View solution" button that plays the witness path so the player
+  can see the answer, without crediting them a solve.
+- **Decisions made:**
+  - Playback = reset to start, then `setTimeout`-chained `tryMove(g, path[i])`
+    every `STEP_MS` (240ms > SLIDE_MS so each slide settles). Timers tracked in a
+    ref + `clearPlayback()`; cleared on unmount and on Retry/Back/new-puzzle.
+  - `solutionShown` (preview active → board `.inert` + click handler early-return
+    + legal hints hidden + win panel suppressed + a "solution" note) and
+    `solving` (timers still running). Both on `__KP__`.
+  - Deterministic smoke signal (reviewer ask — not a racy flag): wait for
+    `solutionShown && !solving && knight==end && visitedCount==totalCells`.
+  - Retry exits the preview to a fresh playable board; View-solution button
+    disabled while shown; Undo disabled while shown.
+- **Acceptance (met):** smoke enters a non-trivial puzzle (#50), clicks View
+  solution, waits for full playback to the goal, asserts `solvedCount` STILL 0
+  (viewing never credits a solve), Retry returns to a fresh board. ci + smoke
+  green.
+- **Locked:** witness-only (no solver); viewing never marks solved; board inert
+  while shown.

@@ -80,6 +80,58 @@ try {
       `catalog should have 100 entries, got ${landing.catalogSize}`,
     );
   }
+  if (landing.solvedCount !== 0) {
+    throw new Error(
+      `expected 0 solved on a fresh load, got ${landing.solvedCount}`,
+    );
+  }
+
+  // View Solution: enter a non-trivial puzzle, reveal the witness, and confirm
+  // it plays all the way to the goal WITHOUT marking the puzzle solved.
+  await page.click('[data-puzzle="50"]');
+  await page.waitForFunction(
+    () => {
+      const s = window.__KP__;
+      return s && s.view === "play" && s.puzzleNumber === 50;
+    },
+    { timeout: 8000 },
+  );
+  await page.getByRole("button", { name: /view solution/i }).click();
+  await page.waitForFunction(
+    () => {
+      const s = window.__KP__;
+      return (
+        s &&
+        s.solutionShown === true &&
+        s.solving === false &&
+        s.visitedCount === s.totalCells &&
+        s.knight.r === s.end.r &&
+        s.knight.c === s.end.c
+      );
+    },
+    { timeout: 20000 },
+  );
+  const shown = await page.evaluate(() => window.__KP__);
+  if (shown.solvedCount !== 0) {
+    throw new Error("View Solution must NOT mark the puzzle solved");
+  }
+  // Retry exits the preview back to a fresh, playable board.
+  await page.getByRole("button", { name: "Retry", exact: true }).click();
+  await page.waitForFunction(
+    () => {
+      const s = window.__KP__;
+      return s && s.solutionShown === false && s.visitedCount === 1 && !s.won;
+    },
+    { timeout: 5000 },
+  );
+  await page.getByRole("button", { name: /all puzzles/i }).click();
+  await page.waitForFunction(
+    () =>
+      window.__KP__ &&
+      window.__KP__.view === "catalog" &&
+      window.__KP__.solvedCount === 0,
+    { timeout: 5000 },
+  );
 
   // Enter catalog puzzle #1 (the easiest) and assert the play view loaded it.
   await page.click('[data-puzzle="1"]');

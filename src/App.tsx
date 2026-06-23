@@ -37,6 +37,7 @@ const DESK_CELL = 56;
 const GAP = 5;
 const PAD = 12;
 const SLIDE_MS = 180; // keep in sync with the .piece transition duration
+const STEP_MS = 240; // View-Solution playback cadence (> SLIDE_MS so each slide settles)
 
 type View = "catalog" | "play";
 
@@ -101,6 +102,18 @@ export default function App() {
   // game stays fully playable, just untracked. Random puzzles are never saved.
   const storage = useMemo(() => defaultStorage(), []);
   const [solved, setSolved] = useState<SolvedMap>(() => loadSolved(storage));
+
+  // "View Solution" playback: solutionShown = preview active (board inert);
+  // solving = the step timers are still running. Recording lives in the click
+  // handler, so playback NEVER marks the puzzle solved.
+  const [solutionShown, setSolutionShown] = useState(false);
+  const [solving, setSolving] = useState(false);
+  const playTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const clearPlayback = useCallback(() => {
+    for (const id of playTimers.current) clearTimeout(id);
+    playTimers.current = [];
+  }, []);
+  useEffect(() => clearPlayback, [clearPlayback]); // clear pending timers on unmount
 
   // The trail is split into a SETTLED polyline (fully drawn) plus one ACTIVE
   // segment that animates in sync with the knight's slide: a move DRAWS the new
@@ -212,6 +225,8 @@ export default function App() {
       solved: { ...solved },
       solvedCount: solvedCount(solved),
       perfectCount: perfectCount(solved),
+      solutionShown,
+      solving,
     };
   }, [
     view,
@@ -225,15 +240,23 @@ export default function App() {
     stuck,
     catalogSummary,
     solved,
+    solutionShown,
+    solving,
   ]);
 
   // Start a game from a source (catalog or random) and switch to the play view.
-  const startSource = useCallback((s: Source) => {
-    setSource(s);
-    setGame(newGame(s.n, s.steps, s.seed));
-    setGen((g) => g + 1);
-    setView("play");
-  }, []);
+  const startSource = useCallback(
+    (s: Source) => {
+      clearPlayback();
+      setSolutionShown(false);
+      setSolving(false);
+      setSource(s);
+      setGame(newGame(s.n, s.steps, s.seed));
+      setGen((g) => g + 1);
+      setView("play");
+    },
+    [clearPlayback],
+  );
 
   const handlePick = useCallback(
     (p: CatalogPuzzle) => startSource(sourceFromCatalog(p)),
@@ -243,21 +266,55 @@ export default function App() {
     () => startSource(randomSource()),
     [startSource],
   );
-  const handleBack = useCallback(() => setView("catalog"), []);
+  const handleBack = useCallback(() => {
+    clearPlayback();
+    setSolutionShown(false);
+    setSolving(false);
+    setView("catalog");
+  }, [clearPlayback]);
 
-  // Retry snaps the piece back to start (re-key), so it does NOT slide.
+  // Retry snaps the piece back to start (re-key), so it does NOT slide. Also
+  // exits a solution preview back to normal play.
   const handleRetry = useCallback(() => {
+    clearPlayback();
+    setSolutionShown(false);
+    setSolving(false);
     setGame((g) => resetGame(g));
     setGen((g) => g + 1);
-  }, []);
+  }, [clearPlayback]);
   // Undo keeps the same gen, so the piece slides back one step.
   const handleUndo = useCallback(() => setGame((g) => undoMove(g)), []);
+
+  // Reveal the witness solution: reset to the start, then step the knight along
+  // puzzle.path on a timer (the existing slide animates each hop). The board is
+  // inert while shown, and because this never goes through handleCellClick the
+  // puzzle is NOT marked solved.
+  const handleViewSolution = useCallback(() => {
+    clearPlayback();
+    const path = game.puzzle.path;
+    setSolutionShown(true);
+    setSolving(true);
+    setGame((g) => resetGame(g));
+    setGen((g) => g + 1);
+    for (let i = 1; i < path.length; i++) {
+      const id = setTimeout(() => {
+        setGame((g) => tryMove(g, path[i]));
+      }, i * STEP_MS);
+      playTimers.current.push(id);
+    }
+    const doneId = setTimeout(
+      () => setSolving(false),
+      path.length * STEP_MS + 60,
+    );
+    playTimers.current.push(doneId);
+  }, [game.puzzle, clearPlayback]);
   // A move is the ONLY way to win, so record a catalog win right here (sticky
   // perfect). Random puzzles (source.id null) are a no-op inside recordSolved.
   // Keeping this out of the play loop also means "View Solution" playback (6e)
   // can advance the board WITHOUT marking the puzzle solved.
   const handleCellClick = useCallback(
     (cell: Cell) => {
+      if (solutionShown) return; // board inert while previewing the solution
       const next = tryMove(game, cell);
       if (next === game) return; // illegal / no-op
       setGame(next);
@@ -267,12 +324,15 @@ export default function App() {
         );
       }
     },
-    [game, source, storage],
+    [game, source, storage, solutionShown],
   );
 
   const legalKeys = useMemo(
-    () => new Set(legal.map((m) => `${m.r}-${m.c}`)),
-    [legal],
+    () =>
+      solutionShown
+        ? new Set<string>()
+        : new Set(legal.map((m) => `${m.r}-${m.c}`)),
+    [legal, solutionShown],
   );
   const visitedKeys = useMemo(
     () => new Set(game.visited.map((v) => `${v.r}-${v.c}`)),
@@ -316,7 +376,7 @@ export default function App() {
 
           <div className="board-wrap">
             <div
-              className="board"
+              className={`board${solutionShown ? " inert" : ""}`}
               style={{
                 gridTemplateColumns: `repeat(${puzzle.n}, 1fr)`,
                 width: `min(92vw, ${maxBoardPx}px)`,
@@ -420,7 +480,7 @@ export default function App() {
             </div>
           </div>
 
-          {won && (
+          {won && !solutionShown && (
             <div className="win-panel" role="status">
               <span className="win-text">
                 {perfect
@@ -437,6 +497,14 @@ export default function App() {
                 </button>
               )}
             </div>
+          )}
+
+          {solutionShown && (
+            <p className="solution-note" role="status">
+              {solving
+                ? "Playing the solution…"
+                : "That’s the full solution — Retry to play it yourself."}
+            </p>
           )}
 
           {stuck && (
@@ -456,6 +524,14 @@ export default function App() {
                 New random puzzle
               </button>
             )}
+            <button
+              type="button"
+              className="btn"
+              onClick={handleViewSolution}
+              disabled={solutionShown}
+            >
+              View solution
+            </button>
             <button type="button" className="btn" onClick={handleRetry}>
               Retry
             </button>
@@ -463,7 +539,7 @@ export default function App() {
               type="button"
               className="btn"
               onClick={handleUndo}
-              disabled={!canUndo}
+              disabled={!canUndo || solutionShown}
             >
               Undo
             </button>
