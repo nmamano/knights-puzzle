@@ -994,11 +994,12 @@ Same gated loop. Reviewer = Game Reviewer
       the settings + new seed. Catalog play view shows NO knobs. `__KP__` already
       exposes randomSettings; smoke moves the slider interaction into the random
       play view (Generate → play → slide board size → assert **KP**.n).
-- [ ] **8c — Vercel Web Analytics.** Nil ENABLED the dashboard toggle (the
-      human-only part). Add `@vercel/analytics` + `<Analytics/>` to the app so the
-      deployed site reports page views. Inert in dev/local (no-op outside Vercel
-      prod), so ci/smoke unaffected. Adds one small dep (package.json + bun.lock).
-      Build stays green. Do AFTER 8b.
+- [x] **8c — Vercel Web Analytics.** Nil ENABLED the dashboard toggle (the
+      human-only part). Added `@vercel/analytics@2.0.1` + `<Analytics/>` from the
+      official `@vercel/analytics/react` entrypoint, PROD-gated in main.tsx
+      (`import.meta.env.PROD`) so it is fully inert in dev / the smoke. ✅ gates
+      green; awaiting diff-gate. package.json + bun.lock updated; analytics code
+      ships in the prod bundle, collects once deployed (deploy stays Nil-gated).
 
 ## Vercel usage tracking (Nil Q2) — answer
 
