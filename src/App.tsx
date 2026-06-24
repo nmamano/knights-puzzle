@@ -693,6 +693,24 @@ export default function App() {
           </p>
         </>
       )}
+
+      <p
+        style={{
+          textAlign: "center",
+          margin: "1.25rem 0 0.5rem",
+          fontSize: "0.95rem",
+          color: "#5a5375",
+        }}
+      >
+        Playing with a friend? Try{" "}
+        <a
+          href="https://rendezvous.nilmamano.com"
+          style={{ color: "var(--accent)", fontWeight: 600 }}
+        >
+          Knight Rendezvous
+        </a>
+        , the two-player co-op version.
+      </p>
     </main>
   );
 }
