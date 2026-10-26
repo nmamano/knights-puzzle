@@ -1,0 +1,49 @@
+# On every push to master: the repo's own gate (`bun run ci`: prettier, eslint,
+# typecheck, tests, vite build), then a files-only image with dist/ at /site, pushed to
+# GHCR. The shared VPS (static-deploy.sh) follows the `main` tag. The model is
+# nilmamano.com's site-image.yml, without the content-key skip: a static swap restarts
+# nothing, so an image per green push costs only a small pull.
+name: Build site image
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: site-image
+  cancel-in-progress: false
+env:
+  IMAGE: ghcr.io/nmamano/knights-puzzle
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      # The newest master: a queued run builds what master holds now.
+      - name: Check out master
+        run: git clone --quiet --depth 1 --branch master "https://github.com/${{ github.repository }}.git" .
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: "1.4.4"
+      - name: Install, check and build
+        run: |
+          bun install --frozen-lockfile
+          bun run ci
+      - name: Build and push the image
+        env:
+          GHCR_TOKEN: ${{ github.token }}
+        run: |
+          commit=$(git rev-parse HEAD)
+          echo "$GHCR_TOKEN" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          # One plain linux/amd64 manifest, no attestation index.
+          docker buildx build --platform linux/amd64 --provenance=false --sbom=false \
+            --build-arg SITE_DIR=dist \
+            --label "org.opencontainers.image.revision=$commit" \
+            --label "org.opencontainers.image.source=https://github.com/${{ github.repository }}" \
+            -t "$IMAGE:sha-$commit" -t "$IMAGE:main" --push .
+          docker logout ghcr.io
+          echo "Pushed $IMAGE:sha-$commit (commit $commit)" >> "$GITHUB_STEP_SUMMARY"

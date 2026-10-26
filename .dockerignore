@@ -1,0 +1,3 @@
+# Build context for the files-only image: only the built site.
+*
+!dist/
